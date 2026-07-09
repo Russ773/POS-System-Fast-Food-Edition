@@ -1,10 +1,17 @@
 import { useMemo, useState } from "react";
 import { Button } from "@pos/ui";
-import type { Employee, Location, MenuItem, PaymentMethod, SelectedModifier } from "@pos/shared";
+import type {
+  AppliedCustomization,
+  Employee,
+  Location,
+  MenuItem,
+  PaymentMethod,
+  SelectedModifier,
+} from "@pos/shared";
 import { api } from "../posClient";
 import { useMenu } from "./useMenu";
-import { CartLine, cartTotalCents, lineTotalCents } from "./cart";
-import { ModifierDialog } from "./ModifierDialog";
+import { CartLine, cartTotalCents, customizationSummary, lineTotalCents } from "./cart";
+import { CustomizeDialog } from "./CustomizeDialog";
 import { CheckoutDialog } from "./CheckoutDialog";
 
 interface Props {
@@ -21,7 +28,7 @@ export function OrderScreen({ employee, onClockOut }: Props) {
   const { categories, items, loading } = useMenu();
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
   const [lines, setLines] = useState<CartLine[]>([]);
-  const [modifierItem, setModifierItem] = useState<MenuItem | null>(null);
+  const [customizeItem, setCustomizeItem] = useState<MenuItem | null>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
 
   const currentCategory = activeCategoryId ?? categories[0]?.id ?? null;
@@ -30,16 +37,23 @@ export function OrderScreen({ employee, onClockOut }: Props) {
     [items, currentCategory],
   );
 
-  function addItem(item: MenuItem, mods: SelectedModifier[]) {
+  function addItem(item: MenuItem, mods: SelectedModifier[], customizations: AppliedCustomization[]) {
     setLines((prev) => [
       ...prev,
-      { lineId: crypto.randomUUID(), menuItem: item, quantity: 1, selectedModifiers: mods },
+      {
+        lineId: crypto.randomUUID(),
+        menuItem: item,
+        quantity: 1,
+        selectedModifiers: mods,
+        customizations,
+      },
     ]);
   }
 
   function onItemTap(item: MenuItem) {
-    if (item.modifierGroups.length > 0) setModifierItem(item);
-    else addItem(item, []);
+    // Open the customize dialog if the item has size options or build ingredients.
+    if (item.modifierGroups.length > 0 || item.ingredients.length > 0) setCustomizeItem(item);
+    else addItem(item, [], []);
   }
 
   function changeQty(lineId: string, delta: number) {
@@ -63,6 +77,10 @@ export function OrderScreen({ employee, onClockOut }: Props) {
         menuItemId: l.menuItem.id,
         quantity: l.quantity,
         selectedModifierIds: l.selectedModifiers.map((m) => m.modifierId),
+        customizations: l.customizations.map((c) => ({
+          ingredientId: c.ingredientId,
+          action: c.action,
+        })),
         notes: l.notes,
       })),
     });
@@ -128,6 +146,9 @@ export function OrderScreen({ employee, onClockOut }: Props) {
                   {line.selectedModifiers.map((m) => m.name).join(", ")}
                 </div>
               )}
+              {line.customizations.length > 0 && (
+                <div className="pos-cart-line__mods">{customizationSummary(line.customizations)}</div>
+              )}
               <div className="pos-cart-line__qty">
                 <button onClick={() => changeQty(line.lineId, -1)}>−</button>
                 <span>{line.quantity}</span>
@@ -148,13 +169,13 @@ export function OrderScreen({ employee, onClockOut }: Props) {
         </div>
       </aside>
 
-      {modifierItem && (
-        <ModifierDialog
-          item={modifierItem}
-          onCancel={() => setModifierItem(null)}
-          onConfirm={(mods) => {
-            addItem(modifierItem, mods);
-            setModifierItem(null);
+      {customizeItem && (
+        <CustomizeDialog
+          item={customizeItem}
+          onCancel={() => setCustomizeItem(null)}
+          onConfirm={({ mods, customizations }) => {
+            addItem(customizeItem, mods, customizations);
+            setCustomizeItem(null);
           }}
         />
       )}

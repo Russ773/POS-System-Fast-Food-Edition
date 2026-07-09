@@ -44,7 +44,7 @@ ordersRouter.post("/", requireAuth(["device", "employee"]), async (req, res) => 
   const menuItemIds = parsed.data.items.map((i) => i.menuItemId);
   const menuItems = await prisma.menuItem.findMany({
     where: { id: { in: menuItemIds }, orgId: req.auth!.orgId },
-    include: { modifierGroups: { include: { modifiers: true } } },
+    include: { modifierGroups: { include: { modifiers: true } }, ingredients: true },
   });
   const menuItemMap = new Map(menuItems.map((m) => [m.id, m]));
 
@@ -69,7 +69,40 @@ ordersRouter.post("/", requireAuth(["device", "employee"]), async (req, res) => 
       return res.status(400).json({ message: `Unknown modifierId ${invalidModifierId}` });
     }
 
-    const unitPriceCents = menuItem.priceCents + selected.reduce((s, m) => s + m.priceDeltaCents, 0);
+    // Validate + price ingredient customizations (no onion / extra cheese / add ketchup).
+    const customizations: {
+      ingredientId: string;
+      name: string;
+      action: "NO" | "ADD" | "EXTRA";
+      priceDeltaCents: number;
+    }[] = [];
+    let customizationError: string | undefined;
+    for (const c of line.customizations) {
+      const ing = menuItem.ingredients.find((i) => i.id === c.ingredientId);
+      if (!ing) {
+        customizationError = `Unknown ingredientId ${c.ingredientId}`;
+        break;
+      }
+      if (c.action === "NO" && !(ing.includedByDefault && ing.removable)) {
+        customizationError = `${ing.name} cannot be removed`;
+        break;
+      }
+      if ((c.action === "ADD" || c.action === "EXTRA") && !ing.addable) {
+        customizationError = `${ing.name} cannot be added`;
+        break;
+      }
+      // Holding an ingredient is free; adding or doubling up costs the extra price.
+      const priceDeltaCents = c.action === "NO" ? 0 : ing.extraPriceCents;
+      customizations.push({ ingredientId: ing.id, name: ing.name, action: c.action, priceDeltaCents });
+    }
+    if (customizationError) {
+      return res.status(400).json({ message: customizationError });
+    }
+
+    const unitPriceCents =
+      menuItem.priceCents +
+      selected.reduce((s, m) => s + m.priceDeltaCents, 0) +
+      customizations.reduce((s, c) => s + c.priceDeltaCents, 0);
     totalCents += unitPriceCents * line.quantity;
 
     orderItemsData.push({
@@ -78,6 +111,7 @@ ordersRouter.post("/", requireAuth(["device", "employee"]), async (req, res) => 
       unitPriceCents,
       notes: line.notes,
       selectedModifiers: selected,
+      customizations,
     });
   }
 

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   employeeSchema,
+  ingredientActionSchema,
   locationSchema,
   orderTypeSchema,
   paymentMethodSchema,
@@ -69,6 +70,16 @@ export const createModifierGroupRequestSchema = z.object({
   modifiers: z.array(createModifierRequestSchema).default([]),
 });
 
+export const createIngredientRequestSchema = z.object({
+  name: z.string().min(1),
+  includedByDefault: z.boolean().default(true),
+  removable: z.boolean().default(true),
+  addable: z.boolean().default(false),
+  extraPriceCents: z.number().int().nonnegative().default(0),
+  sortOrder: z.number().int().default(0),
+});
+export type CreateIngredientRequest = z.infer<typeof createIngredientRequestSchema>;
+
 export const createMenuItemRequestSchema = z.object({
   categoryId: z.string().uuid(),
   name: z.string().min(1),
@@ -76,6 +87,7 @@ export const createMenuItemRequestSchema = z.object({
   priceCents: z.number().int().nonnegative(),
   imageUrl: z.string().optional(),
   modifierGroups: z.array(createModifierGroupRequestSchema).default([]),
+  ingredients: z.array(createIngredientRequestSchema).default([]),
 });
 export type CreateMenuItemRequest = z.infer<typeof createMenuItemRequestSchema>;
 
@@ -121,11 +133,18 @@ export type UpdateEmployeeRequest = z.infer<typeof updateEmployeeRequestSchema>;
 
 // --- Orders ---
 
+export const orderItemCustomizationRequestSchema = z.object({
+  ingredientId: z.string().uuid(),
+  action: ingredientActionSchema,
+});
+export type OrderItemCustomizationRequest = z.infer<typeof orderItemCustomizationRequestSchema>;
+
 export const createOrderItemRequestSchema = z.object({
   menuItemId: z.string().uuid(),
   quantity: z.number().int().positive().default(1),
   notes: z.string().optional(),
   selectedModifierIds: z.array(z.string().uuid()).default([]),
+  customizations: z.array(orderItemCustomizationRequestSchema).default([]),
 });
 
 export const createOrderRequestSchema = z.object({

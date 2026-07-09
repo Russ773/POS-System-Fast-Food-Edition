@@ -93,6 +93,18 @@ export const menuCategorySchema = z.object({
 });
 export type MenuCategory = z.infer<typeof menuCategorySchema>;
 
+export const menuItemIngredientSchema = z.object({
+  id: z.string().uuid(),
+  menuItemId: z.string().uuid(),
+  name: z.string(),
+  includedByDefault: z.boolean(),
+  removable: z.boolean(),
+  addable: z.boolean(),
+  extraPriceCents: z.number().int().nonnegative(),
+  sortOrder: z.number().int(),
+});
+export type MenuItemIngredient = z.infer<typeof menuItemIngredientSchema>;
+
 export const menuItemSchema = z.object({
   id: z.string().uuid(),
   orgId: z.string().uuid(),
@@ -103,6 +115,7 @@ export const menuItemSchema = z.object({
   imageUrl: z.string().nullable(),
   isActive: z.boolean(),
   modifierGroups: z.array(modifierGroupSchema),
+  ingredients: z.array(menuItemIngredientSchema),
 });
 export type MenuItem = z.infer<typeof menuItemSchema>;
 
@@ -123,6 +136,20 @@ export const selectedModifierSchema = z.object({
 });
 export type SelectedModifier = z.infer<typeof selectedModifierSchema>;
 
+// How a build ingredient was changed on a specific order line.
+// NO = hold a default ingredient; ADD = add one not normally included;
+// EXTRA = double up on a default ingredient.
+export const ingredientActionSchema = z.enum(["NO", "ADD", "EXTRA"]);
+export type IngredientAction = z.infer<typeof ingredientActionSchema>;
+
+export const appliedCustomizationSchema = z.object({
+  ingredientId: z.string().uuid(),
+  name: z.string(),
+  action: ingredientActionSchema,
+  priceDeltaCents: z.number().int(),
+});
+export type AppliedCustomization = z.infer<typeof appliedCustomizationSchema>;
+
 export const orderItemSchema = z.object({
   id: z.string().uuid(),
   orderId: z.string().uuid(),
@@ -132,6 +159,7 @@ export const orderItemSchema = z.object({
   unitPriceCents: z.number().int().nonnegative(),
   notes: z.string().nullable(),
   selectedModifiers: z.array(selectedModifierSchema),
+  customizations: z.array(appliedCustomizationSchema),
 });
 export type OrderItem = z.infer<typeof orderItemSchema>;
 

@@ -3,6 +3,11 @@ import { Button, Card, Input, Select } from "@pos/ui";
 import type { MenuCategory, MenuItem } from "@pos/shared";
 import { api } from "../api";
 import { centsToDollars, dollarsToCents } from "../format";
+import {
+  DraftIngredient,
+  IngredientsEditor,
+  draftsToRequests,
+} from "../components/IngredientsEditor";
 
 export function MenuPage() {
   const [categories, setCategories] = useState<MenuCategory[]>([]);
@@ -14,6 +19,7 @@ export function MenuPage() {
   const [itemPrice, setItemPrice] = useState("");
   const [itemCategoryId, setItemCategoryId] = useState("");
   const [itemDescription, setItemDescription] = useState("");
+  const [itemIngredients, setItemIngredients] = useState<DraftIngredient[]>([]);
 
   async function load() {
     const [cats, its] = await Promise.all([api.menu.listCategories(), api.menu.listItems()]);
@@ -51,10 +57,12 @@ export function MenuPage() {
         description: itemDescription.trim() || undefined,
         priceCents: dollarsToCents(itemPrice),
         modifierGroups: [],
+        ingredients: draftsToRequests(itemIngredients),
       });
       setItemName("");
       setItemPrice("");
       setItemDescription("");
+      setItemIngredients([]);
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to add item");
@@ -123,6 +131,7 @@ export function MenuPage() {
               value={itemDescription}
               onChange={(e) => setItemDescription(e.target.value)}
             />
+            <IngredientsEditor value={itemIngredients} onChange={setItemIngredients} />
             <Button type="submit" disabled={!itemCategoryId || !itemName || !itemPrice}>
               Add Item
             </Button>
@@ -139,6 +148,7 @@ export function MenuPage() {
               <th>Category</th>
               <th>Price</th>
               <th>Modifiers</th>
+              <th>Ingredients</th>
               <th></th>
             </tr>
           </thead>
@@ -149,6 +159,7 @@ export function MenuPage() {
                 <td>{categories.find((c) => c.id === item.categoryId)?.name ?? "—"}</td>
                 <td>{centsToDollars(item.priceCents)}</td>
                 <td>{item.modifierGroups.map((g) => g.name).join(", ") || "—"}</td>
+                <td>{item.ingredients.map((i) => i.name).join(", ") || "—"}</td>
                 <td>
                   <Button variant="ghost" onClick={() => deleteItem(item.id)}>
                     Delete
@@ -158,7 +169,7 @@ export function MenuPage() {
             ))}
             {items.length === 0 && (
               <tr>
-                <td colSpan={5} className="muted">
+                <td colSpan={6} className="muted">
                   No menu items yet.
                 </td>
               </tr>

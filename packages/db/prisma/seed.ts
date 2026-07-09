@@ -68,6 +68,18 @@ async function main() {
     },
   });
 
+  // Build ingredients: defaults can be held; some can be added / made extra.
+  await prisma.menuItemIngredient.createMany({
+    data: [
+      { menuItemId: cheeseburger.id, name: "Lettuce", includedByDefault: true, removable: true, addable: false, sortOrder: 1 },
+      { menuItemId: cheeseburger.id, name: "Onion", includedByDefault: true, removable: true, addable: false, sortOrder: 2 },
+      { menuItemId: cheeseburger.id, name: "Tomato", includedByDefault: true, removable: true, addable: false, sortOrder: 3 },
+      { menuItemId: cheeseburger.id, name: "Cheese", includedByDefault: true, removable: true, addable: true, extraPriceCents: 50, sortOrder: 4 },
+      { menuItemId: cheeseburger.id, name: "Ketchup", includedByDefault: false, removable: false, addable: true, extraPriceCents: 0, sortOrder: 5 },
+      { menuItemId: cheeseburger.id, name: "Bacon", includedByDefault: false, removable: false, addable: true, extraPriceCents: 150, sortOrder: 6 },
+    ],
+  });
+
   await prisma.menuItem.create({
     data: {
       orgId: org.id,

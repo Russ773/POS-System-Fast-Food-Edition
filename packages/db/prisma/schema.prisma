@@ -133,13 +133,32 @@ model MenuItem {
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
 
-  organization   Organization    @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  category       MenuCategory    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  organization   Organization         @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  category       MenuCategory         @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   modifierGroups ModifierGroup[]
+  ingredients    MenuItemIngredient[]
   orderItems     OrderItem[]
 
   @@index([orgId])
   @@index([categoryId])
+}
+
+// A build component of a menu item (lettuce, onion, cheese, ketchup...). Drives
+// order-time customization: hold a default ingredient ("no onion") or add/extra
+// ("extra cheese", "add ketchup").
+model MenuItemIngredient {
+  id                String  @id @default(uuid())
+  menuItemId        String
+  name              String
+  includedByDefault Boolean @default(true) // on the item as standard?
+  removable         Boolean @default(true) // can it be left out?
+  addable           Boolean @default(false) // can it be added / doubled up?
+  extraPriceCents   Int     @default(0) // charge to add or make extra
+  sortOrder         Int     @default(0)
+
+  menuItem MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+
+  @@index([menuItemId])
 }
 
 model ModifierGroup {
@@ -208,6 +227,7 @@ model OrderItem {
   unitPriceCents    Int
   notes             String?
   selectedModifiers Json    @default("[]")
+  customizations    Json    @default("[]") // applied ingredient changes: NO/ADD/EXTRA
 
   order    Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   menuItem MenuItem @relation(fields: [menuItemId], references: [id])

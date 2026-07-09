@@ -51,6 +51,18 @@ export function KitchenBoard({ locationId }: { locationId: string }) {
                               {item.selectedModifiers.map((m) => m.name).join(", ")}
                             </div>
                           )}
+                          {item.customizations.length > 0 && (
+                            <div className="kds-ticket__customizations">
+                              {item.customizations.map((c) => (
+                                <span
+                                  key={c.ingredientId}
+                                  className={`kds-chip kds-chip--${c.action === "NO" ? "no" : "add"}`}
+                                >
+                                  {c.action} {c.name}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                           {item.notes && <div className="kds-ticket__note">“{item.notes}”</div>}
                         </li>
                       ))}

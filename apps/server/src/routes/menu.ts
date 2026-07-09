@@ -93,6 +93,16 @@ menuRouter.post("/items", requireAuth(["user"]), async (req, res) => {
           modifiers: { create: g.modifiers.map((m) => ({ name: m.name, priceDeltaCents: m.priceDeltaCents })) },
         })),
       },
+      ingredients: {
+        create: parsed.data.ingredients.map((ing, idx) => ({
+          name: ing.name,
+          includedByDefault: ing.includedByDefault,
+          removable: ing.removable,
+          addable: ing.addable,
+          extraPriceCents: ing.extraPriceCents,
+          sortOrder: ing.sortOrder || idx + 1,
+        })),
+      },
     },
     include: menuItemInclude,
   });

@@ -148,6 +148,33 @@ body,
   padding-left: var(--pos-space-3);
 }
 
+.kds-ticket__customizations {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding-left: var(--pos-space-3);
+  margin-top: 2px;
+}
+
+.kds-chip {
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 1px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.kds-chip--no {
+  background: #dc262633;
+  color: #f87171;
+}
+
+.kds-chip--add {
+  background: #16a34a33;
+  color: #4ade80;
+}
+
 .kds-empty {
   color: var(--pos-color-text-muted);
   text-align: center;

@@ -187,6 +187,51 @@ body,
   background: #dc26261a;
 }
 
+/* Ingredients editor */
+.ing-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pos-space-2);
+  border: 1px solid var(--pos-color-border);
+  border-radius: var(--pos-radius-md);
+  padding: var(--pos-space-3);
+}
+
+.ing-editor__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+  color: var(--pos-color-text-muted);
+}
+
+.ing-row {
+  display: flex;
+  align-items: center;
+  gap: var(--pos-space-2);
+  flex-wrap: wrap;
+}
+
+.ing-row__name {
+  flex: 1;
+  min-width: 120px;
+  min-height: 44px;
+}
+
+.ing-row__price {
+  width: 90px;
+  min-height: 44px;
+}
+
+.ing-check {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: var(--pos-color-text-muted);
+  white-space: nowrap;
+}
+
 h2 {
   margin-top: 0;
 }

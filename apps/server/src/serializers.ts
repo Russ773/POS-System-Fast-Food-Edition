@@ -3,6 +3,7 @@ import type { MenuItem, Order } from "@pos/shared";
 
 const menuItemInclude = {
   modifierGroups: { include: { modifiers: true } },
+  ingredients: { orderBy: { sortOrder: "asc" } },
 } satisfies Prisma.MenuItemInclude;
 
 export type MenuItemWithGroups = Prisma.MenuItemGetPayload<{ include: typeof menuItemInclude }>;
@@ -29,6 +30,16 @@ export function toMenuItemDTO(item: MenuItemWithGroups): MenuItem {
         name: m.name,
         priceDeltaCents: m.priceDeltaCents,
       })),
+    })),
+    ingredients: item.ingredients.map((ing) => ({
+      id: ing.id,
+      menuItemId: ing.menuItemId,
+      name: ing.name,
+      includedByDefault: ing.includedByDefault,
+      removable: ing.removable,
+      addable: ing.addable,
+      extraPriceCents: ing.extraPriceCents,
+      sortOrder: ing.sortOrder,
     })),
   };
 }
@@ -62,6 +73,7 @@ export function toOrderDTO(order: OrderWithItems): Order {
       unitPriceCents: oi.unitPriceCents,
       notes: oi.notes,
       selectedModifiers: (oi.selectedModifiers as Order["items"][number]["selectedModifiers"]) ?? [],
+      customizations: (oi.customizations as Order["items"][number]["customizations"]) ?? [],
     })),
     payments: order.payments.map((p) => ({
       id: p.id,

@@ -10,6 +10,7 @@ export type {
   MenuItem,
   ModifierGroup,
   Modifier,
+  MenuItemIngredient,
   InventoryItem,
   Order,
   OrderItem,
