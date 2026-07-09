@@ -1,0 +1,12 @@
+.pos-keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--pos-space-3);
+  width: 100%;
+  max-width: 320px;
+}
+
+.pos-keypad__key {
+  width: 100%;
+  font-size: 1.5rem;
+}

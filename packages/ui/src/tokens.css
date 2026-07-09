@@ -1,0 +1,37 @@
+:root {
+  --pos-color-bg: #0f172a;
+  --pos-color-surface: #1e293b;
+  --pos-color-surface-alt: #334155;
+  --pos-color-border: #475569;
+  --pos-color-text: #f1f5f9;
+  --pos-color-text-muted: #94a3b8;
+  --pos-color-primary: #2563eb;
+  --pos-color-primary-hover: #1d4ed8;
+  --pos-color-success: #16a34a;
+  --pos-color-warning: #d97706;
+  --pos-color-danger: #dc2626;
+
+  --pos-radius-sm: 6px;
+  --pos-radius-md: 10px;
+  --pos-radius-lg: 16px;
+
+  --pos-space-1: 4px;
+  --pos-space-2: 8px;
+  --pos-space-3: 12px;
+  --pos-space-4: 16px;
+  --pos-space-5: 24px;
+  --pos-space-6: 32px;
+
+  --pos-touch-target: 56px;
+  --pos-font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--pos-font-family);
+  background: var(--pos-color-bg);
+  color: var(--pos-color-text);
+}

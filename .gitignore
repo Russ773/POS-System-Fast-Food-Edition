@@ -1,0 +1,25 @@
+node_modules/
+dist/
+build/
+out/
+.env
+.env.local
+*.log
+.DS_Store
+Thumbs.db
+
+# Prisma
+packages/db/generated/
+
+# Electron
+apps/pos-desktop/release/
+apps/pos-desktop/.vite/
+
+# Local SQLite offline cache
+*.sqlite
+*.sqlite-journal
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea/

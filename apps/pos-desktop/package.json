@@ -1,0 +1,36 @@
+{
+  "name": "@pos/pos-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "main": "out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "start": "electron-vite preview",
+    "package": "electron-vite build && electron-builder",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json"
+  },
+  "dependencies": {
+    "@pos/shared": "*",
+    "@pos/ui": "*"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.11",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.2",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8",
+    "electron-vite": "^2.3.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.8"
+  },
+  "build": {
+    "appId": "com.samplepos.desktop",
+    "productName": "Sample POS",
+    "directories": { "output": "release" },
+    "files": ["out/**/*"],
+    "win": { "target": "nsis" }
+  }
+}

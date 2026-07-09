@@ -1,0 +1,22 @@
+export { PrismaClient, Prisma } from "@prisma/client";
+export type {
+  Organization,
+  Location,
+  User,
+  UserRole,
+  Employee,
+  Shift,
+  MenuCategory,
+  MenuItem,
+  ModifierGroup,
+  Modifier,
+  InventoryItem,
+  Order,
+  OrderItem,
+  OrderStatus,
+  OrderType,
+  Payment,
+  PaymentMethod,
+  PaymentStatus,
+  Device,
+} from "@prisma/client";

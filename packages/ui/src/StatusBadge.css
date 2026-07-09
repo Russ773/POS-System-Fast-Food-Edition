@@ -1,0 +1,31 @@
+.pos-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--pos-space-1) var(--pos-space-3);
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.pos-status-badge--neutral {
+  background: var(--pos-color-surface-alt);
+  color: var(--pos-color-text);
+}
+.pos-status-badge--info {
+  background: #1d4ed833;
+  color: #60a5fa;
+}
+.pos-status-badge--success {
+  background: #16a34a33;
+  color: #4ade80;
+}
+.pos-status-badge--warning {
+  background: #d9770633;
+  color: #fbbf24;
+}
+.pos-status-badge--danger {
+  background: #dc262633;
+  color: #f87171;
+}

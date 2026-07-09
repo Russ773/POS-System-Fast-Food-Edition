@@ -1,0 +1,6 @@
+.pos-card {
+  background: var(--pos-color-surface);
+  border: 1px solid var(--pos-color-border);
+  border-radius: var(--pos-radius-lg);
+  padding: var(--pos-space-4);
+}

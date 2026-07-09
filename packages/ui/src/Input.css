@@ -1,0 +1,26 @@
+.pos-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pos-space-1);
+}
+
+.pos-field__label {
+  font-size: 0.875rem;
+  color: var(--pos-color-text-muted);
+}
+
+.pos-input {
+  min-height: var(--pos-touch-target);
+  padding: 0 var(--pos-space-3);
+  border-radius: var(--pos-radius-md);
+  border: 1px solid var(--pos-color-border);
+  background: var(--pos-color-surface);
+  color: var(--pos-color-text);
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+.pos-input:focus {
+  outline: 2px solid var(--pos-color-primary);
+  outline-offset: 1px;
+}

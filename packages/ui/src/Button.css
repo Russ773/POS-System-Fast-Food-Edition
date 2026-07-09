@@ -1,0 +1,57 @@
+.pos-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--pos-space-2);
+  border: none;
+  border-radius: var(--pos-radius-md);
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.05s ease;
+}
+
+.pos-button:active {
+  transform: scale(0.98);
+}
+
+.pos-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pos-button--md {
+  min-height: var(--pos-touch-target);
+  padding: var(--pos-space-2) var(--pos-space-4);
+  font-size: 1rem;
+}
+
+.pos-button--lg {
+  min-height: 72px;
+  padding: var(--pos-space-3) var(--pos-space-5);
+  font-size: 1.25rem;
+}
+
+.pos-button--primary {
+  background: var(--pos-color-primary);
+  color: white;
+}
+.pos-button--primary:hover {
+  background: var(--pos-color-primary-hover);
+}
+
+.pos-button--secondary {
+  background: var(--pos-color-surface-alt);
+  color: var(--pos-color-text);
+}
+
+.pos-button--danger {
+  background: var(--pos-color-danger);
+  color: white;
+}
+
+.pos-button--ghost {
+  background: transparent;
+  color: var(--pos-color-text);
+  border: 1px solid var(--pos-color-border);
+}

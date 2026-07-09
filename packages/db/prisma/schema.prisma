@@ -1,0 +1,244 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  OWNER
+  ADMIN
+  MANAGER
+}
+
+enum OrderStatus {
+  OPEN
+  IN_PROGRESS
+  READY
+  COMPLETED
+  CANCELLED
+}
+
+enum OrderType {
+  DINE_IN
+  TAKEOUT
+  DRIVE_THRU
+}
+
+enum PaymentMethod {
+  CASH
+  CARD_MOCK
+}
+
+enum PaymentStatus {
+  PENDING
+  CAPTURED
+  FAILED
+}
+
+model Organization {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  locations      Location[]
+  users          User[]
+  menuCategories MenuCategory[]
+  menuItems      MenuItem[]
+}
+
+model Location {
+  id        String   @id @default(uuid())
+  orgId     String
+  name      String
+  address   String?
+  timezone  String   @default("America/New_York")
+  createdAt DateTime @default(now())
+
+  organization   Organization    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  employees      Employee[]
+  inventoryItems InventoryItem[]
+  orders         Order[]
+  devices        Device[]
+
+  @@index([orgId])
+}
+
+model User {
+  id           String   @id @default(uuid())
+  orgId        String
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         UserRole @default(MANAGER)
+  createdAt    DateTime @default(now())
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+}
+
+model Employee {
+  id             String   @id @default(uuid())
+  locationId     String
+  name           String
+  pinHash        String
+  hourlyRateCents Int     @default(0)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  shifts   Shift[]
+  orders   Order[]
+
+  @@index([locationId])
+}
+
+model Shift {
+  id         String    @id @default(uuid())
+  employeeId String
+  locationId String
+  clockIn    DateTime  @default(now())
+  clockOut   DateTime?
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([employeeId])
+  @@index([locationId])
+}
+
+model MenuCategory {
+  id        String   @id @default(uuid())
+  orgId     String
+  name      String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  menuItems    MenuItem[]
+
+  @@index([orgId])
+}
+
+model MenuItem {
+  id          String   @id @default(uuid())
+  orgId       String
+  categoryId  String
+  name        String
+  description String?
+  priceCents  Int
+  imageUrl    String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  organization   Organization    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  category       MenuCategory    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  modifierGroups ModifierGroup[]
+  orderItems     OrderItem[]
+
+  @@index([orgId])
+  @@index([categoryId])
+}
+
+model ModifierGroup {
+  id         String  @id @default(uuid())
+  menuItemId String
+  name       String
+  minSelect  Int     @default(0)
+  maxSelect  Int     @default(1)
+
+  menuItem  MenuItem   @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  modifiers Modifier[]
+
+  @@index([menuItemId])
+}
+
+model Modifier {
+  id              String @id @default(uuid())
+  groupId         String
+  name            String
+  priceDeltaCents Int    @default(0)
+
+  group ModifierGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@index([groupId])
+}
+
+model InventoryItem {
+  id               String   @id @default(uuid())
+  locationId       String
+  name             String
+  unit             String
+  quantityOnHand   Float    @default(0)
+  reorderThreshold Float    @default(0)
+  createdAt        DateTime @default(now())
+
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@index([locationId])
+}
+
+model Order {
+  id          String      @id @default(uuid())
+  locationId  String
+  employeeId  String?
+  status      OrderStatus @default(OPEN)
+  orderType   OrderType   @default(TAKEOUT)
+  totalCents  Int         @default(0)
+  clientRefId String?     @unique
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  location  Location    @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  employee  Employee?   @relation(fields: [employeeId], references: [id])
+  items     OrderItem[]
+  payments  Payment[]
+
+  @@index([locationId])
+  @@index([employeeId])
+}
+
+model OrderItem {
+  id                String  @id @default(uuid())
+  orderId           String
+  menuItemId        String
+  quantity          Int     @default(1)
+  unitPriceCents    Int
+  notes             String?
+  selectedModifiers Json    @default("[]")
+
+  order    Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItem MenuItem @relation(fields: [menuItemId], references: [id])
+
+  @@index([orderId])
+  @@index([menuItemId])
+}
+
+model Payment {
+  id          String        @id @default(uuid())
+  orderId     String
+  method      PaymentMethod
+  amountCents Int
+  status      PaymentStatus @default(PENDING)
+  createdAt   DateTime      @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+}
+
+// Represents a paired POS terminal (Electron app instance) scoped to one Location.
+model Device {
+  id         String   @id @default(uuid())
+  locationId String
+  name       String
+  tokenHash  String   @unique
+  pairedAt   DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@index([locationId])
+}
