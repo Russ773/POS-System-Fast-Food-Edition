@@ -80,7 +80,7 @@ async function main() {
     ],
   });
 
-  await prisma.menuItem.create({
+  const fries = await prisma.menuItem.create({
     data: {
       orgId: org.id,
       categoryId: sides.id,
@@ -90,13 +90,36 @@ async function main() {
     },
   });
 
-  await prisma.inventoryItem.create({
+  const groundBeef = await prisma.inventoryItem.create({
     data: {
       locationId: location.id,
       name: "Ground Beef",
       unit: "lb",
       quantityOnHand: 50,
       reorderThreshold: 10,
+    },
+  });
+
+  // Recipe: each Cheeseburger uses 0.25 lb of Ground Beef (auto-depletes stock).
+  await prisma.recipeComponent.create({
+    data: { menuItemId: cheeseburger.id, inventoryItemId: groundBeef.id, quantity: 0.25 },
+  });
+
+  // A combo: Cheeseburger + Fries bundled at a set price.
+  await prisma.menuItem.create({
+    data: {
+      orgId: org.id,
+      categoryId: burgers.id,
+      name: "Cheeseburger Combo",
+      description: "Cheeseburger + Fries",
+      priceCents: 799,
+      isCombo: true,
+      comboComponents: {
+        create: [
+          { componentItemId: cheeseburger.id, quantity: 1 },
+          { componentItemId: fries.id, quantity: 1 },
+        ],
+      },
     },
   });
 

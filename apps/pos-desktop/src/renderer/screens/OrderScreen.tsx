@@ -117,7 +117,15 @@ export function OrderScreen({ employee, onClockOut }: Props) {
         <div className="pos-item-grid">
           {visibleItems.map((item) => (
             <button key={item.id} className="pos-item-card" onClick={() => onItemTap(item)}>
-              <span className="pos-item-card__name">{item.name}</span>
+              <span className="pos-item-card__name">
+                {item.name}
+                {item.isCombo && <span className="pos-combo-badge">COMBO</span>}
+              </span>
+              {item.isCombo && item.comboComponents.length > 0 && (
+                <span className="pos-item-card__combo">
+                  {item.comboComponents.map((c) => c.name).join(" + ")}
+                </span>
+              )}
               <span className="pos-item-card__price">{money(item.priceCents)}</span>
             </button>
           ))}

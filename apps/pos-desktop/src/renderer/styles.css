@@ -168,6 +168,22 @@ body,
   color: var(--pos-color-text-muted);
 }
 
+.pos-item-card__combo {
+  font-size: 0.8rem;
+  color: var(--pos-color-text-muted);
+}
+
+.pos-combo-badge {
+  margin-left: 6px;
+  background: var(--pos-color-warning);
+  color: #1f2937;
+  font-size: 0.6rem;
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: 4px;
+  vertical-align: middle;
+}
+
 /* Cart */
 .pos-cart {
   display: flex;

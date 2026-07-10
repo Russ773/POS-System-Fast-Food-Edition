@@ -1,18 +1,26 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Button, Card, Input, Select } from "@pos/ui";
-import type { MenuCategory, MenuItem } from "@pos/shared";
+import type { InventoryItem, MenuCategory, MenuItem } from "@pos/shared";
 import { api } from "../api";
+import { useAuth } from "../auth/AuthContext";
 import { centsToDollars, dollarsToCents } from "../format";
 import {
   DraftIngredient,
   IngredientsEditor,
   draftsToRequests,
 } from "../components/IngredientsEditor";
+import {
+  ComboComponentsEditor,
+  ComboDraft,
+  comboDraftsToRequests,
+} from "../components/RecipeEditor";
 import { EditItemDialog } from "../components/EditItemDialog";
 
 export function MenuPage() {
+  const { selectedLocationId } = useAuth();
   const [categories, setCategories] = useState<MenuCategory[]>([]);
   const [items, setItems] = useState<MenuItem[]>([]);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [newCategory, setNewCategory] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -23,17 +31,24 @@ export function MenuPage() {
   const [itemIngredients, setItemIngredients] = useState<DraftIngredient[]>([]);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
 
+  const [comboName, setComboName] = useState("");
+  const [comboPrice, setComboPrice] = useState("");
+  const [comboItems, setComboItems] = useState<ComboDraft[]>([]);
+
   async function load() {
     const [cats, its] = await Promise.all([api.menu.listCategories(), api.menu.listItems()]);
     setCategories(cats);
     setItems(its);
     if (!itemCategoryId && cats.length > 0) setItemCategoryId(cats[0].id);
+    if (selectedLocationId) {
+      setInventory(await api.inventory.list(selectedLocationId));
+    }
   }
 
   useEffect(() => {
     load().catch((e) => setError(e.message));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [selectedLocationId]);
 
   async function addCategory(e: FormEvent) {
     e.preventDefault();
@@ -58,8 +73,11 @@ export function MenuPage() {
         name: itemName.trim(),
         description: itemDescription.trim() || undefined,
         priceCents: dollarsToCents(itemPrice),
+        isCombo: false,
         modifierGroups: [],
         ingredients: draftsToRequests(itemIngredients),
+        recipe: [],
+        comboComponents: [],
       });
       setItemName("");
       setItemPrice("");
@@ -68,6 +86,29 @@ export function MenuPage() {
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to add item");
+    }
+  }
+
+  async function addCombo(e: FormEvent) {
+    e.preventDefault();
+    setError(null);
+    try {
+      await api.menu.createItem({
+        categoryId: itemCategoryId,
+        name: comboName.trim(),
+        priceCents: dollarsToCents(comboPrice),
+        isCombo: true,
+        modifierGroups: [],
+        ingredients: [],
+        recipe: [],
+        comboComponents: comboDraftsToRequests(comboItems),
+      });
+      setComboName("");
+      setComboPrice("");
+      setComboItems([]);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to add combo");
     }
   }
 
@@ -147,6 +188,31 @@ export function MenuPage() {
       </div>
 
       <Card>
+        <h2>Create Combo</h2>
+        <form onSubmit={addCombo} className="stack-form">
+          <Input label="Combo name" value={comboName} onChange={(e) => setComboName(e.target.value)} />
+          <Input
+            label="Combo price (USD)"
+            type="number"
+            step="0.01"
+            value={comboPrice}
+            onChange={(e) => setComboPrice(e.target.value)}
+          />
+          <ComboComponentsEditor
+            value={comboItems}
+            onChange={setComboItems}
+            options={items.filter((i) => !i.isCombo)}
+          />
+          <Button
+            type="submit"
+            disabled={!comboName || !comboPrice || comboDraftsToRequests(comboItems).length === 0}
+          >
+            Create Combo
+          </Button>
+        </form>
+      </Card>
+
+      <Card>
         <h2>Menu Items</h2>
         <table className="data-table">
           <thead>
@@ -162,11 +228,18 @@ export function MenuPage() {
           <tbody>
             {items.map((item) => (
               <tr key={item.id}>
-                <td>{item.name}</td>
+                <td>
+                  {item.name}
+                  {item.isCombo && <span className="combo-badge">COMBO</span>}
+                </td>
                 <td>{categories.find((c) => c.id === item.categoryId)?.name ?? "—"}</td>
                 <td>{centsToDollars(item.priceCents)}</td>
                 <td>{item.modifierGroups.map((g) => g.name).join(", ") || "—"}</td>
-                <td>{item.ingredients.map((i) => i.name).join(", ") || "—"}</td>
+                <td>
+                  {item.isCombo
+                    ? item.comboComponents.map((c) => `${c.quantity}× ${c.name}`).join(", ")
+                    : item.ingredients.map((i) => i.name).join(", ") || "—"}
+                </td>
                 <td className="row-actions">
                   <Button variant="ghost" onClick={() => setEditingItem(item)}>
                     Edit
@@ -192,6 +265,8 @@ export function MenuPage() {
         <EditItemDialog
           item={editingItem}
           categories={categories}
+          inventoryItems={inventory}
+          allItems={items}
           onClose={() => setEditingItem(null)}
           onSaved={async () => {
             setEditingItem(null);

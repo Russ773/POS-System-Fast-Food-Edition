@@ -131,16 +131,50 @@ model MenuItem {
   priceCents  Int
   imageUrl    String?
   isActive    Boolean  @default(true)
+  isCombo     Boolean  @default(false) // bundles other items at a set price
   createdAt   DateTime @default(now())
 
-  organization   Organization         @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  category       MenuCategory         @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  modifierGroups ModifierGroup[]
-  ingredients    MenuItemIngredient[]
-  orderItems     OrderItem[]
+  organization    Organization         @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  category        MenuCategory         @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  modifierGroups  ModifierGroup[]
+  ingredients     MenuItemIngredient[]
+  recipe          RecipeComponent[]
+  comboComponents ComboComponent[]     @relation("ComboParent")
+  partOfCombos    ComboComponent[]     @relation("ComboChild")
+  orderItems      OrderItem[]
 
   @@index([orgId])
   @@index([categoryId])
+}
+
+// How much of an inventory item one unit of a menu item consumes. Drives
+// automatic stock depletion when an order is placed.
+model RecipeComponent {
+  id              String @id @default(uuid())
+  menuItemId      String
+  inventoryItemId String
+  quantity        Float  @default(0)
+
+  menuItem      MenuItem      @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  inventoryItem InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+
+  @@index([menuItemId])
+  @@index([inventoryItemId])
+}
+
+// A component of a combo: one menu item (componentItem) included in a combo
+// menu item (comboItem), with a quantity.
+model ComboComponent {
+  id              String @id @default(uuid())
+  comboItemId     String
+  componentItemId String
+  quantity        Int    @default(1)
+
+  comboItem     MenuItem @relation("ComboParent", fields: [comboItemId], references: [id], onDelete: Cascade)
+  componentItem MenuItem @relation("ComboChild", fields: [componentItemId], references: [id])
+
+  @@index([comboItemId])
+  @@index([componentItemId])
 }
 
 // A build component of a menu item (lettuce, onion, cheese, ketchup...). Drives
@@ -194,7 +228,8 @@ model InventoryItem {
   reorderThreshold Float    @default(0)
   createdAt        DateTime @default(now())
 
-  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  location         Location          @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  recipeComponents RecipeComponent[]
 
   @@index([locationId])
 }

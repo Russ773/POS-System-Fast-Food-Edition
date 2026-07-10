@@ -85,6 +85,7 @@ menuRouter.post("/items", requireAuth(["user"]), async (req, res) => {
       description: parsed.data.description,
       priceCents: parsed.data.priceCents,
       imageUrl: parsed.data.imageUrl,
+      isCombo: parsed.data.isCombo,
       modifierGroups: {
         create: parsed.data.modifierGroups.map((g) => ({
           name: g.name,
@@ -103,6 +104,18 @@ menuRouter.post("/items", requireAuth(["user"]), async (req, res) => {
           sortOrder: ing.sortOrder || idx + 1,
         })),
       },
+      recipe: {
+        create: parsed.data.recipe.map((r) => ({
+          inventoryItemId: r.inventoryItemId,
+          quantity: r.quantity,
+        })),
+      },
+      comboComponents: {
+        create: parsed.data.comboComponents.map((c) => ({
+          componentItemId: c.componentItemId,
+          quantity: c.quantity,
+        })),
+      },
     },
     include: menuItemInclude,
   });
@@ -118,7 +131,7 @@ menuRouter.patch("/items/:id", requireAuth(["user"]), async (req, res) => {
   });
   if (!existing) return res.status(404).json({ message: "Menu item not found" });
 
-  const { ingredients, ...fields } = parsed.data;
+  const { ingredients, recipe, comboComponents, ...fields } = parsed.data;
 
   const item = await prisma.$transaction(async (tx) => {
     await tx.menuItem.update({ where: { id: existing.id }, data: fields });
@@ -135,6 +148,32 @@ menuRouter.patch("/items/:id", requireAuth(["user"]), async (req, res) => {
             addable: ing.addable,
             extraPriceCents: ing.extraPriceCents,
             sortOrder: ing.sortOrder || idx + 1,
+          })),
+        });
+      }
+    }
+    // Replace the recipe (stock usage) when provided.
+    if (recipe) {
+      await tx.recipeComponent.deleteMany({ where: { menuItemId: existing.id } });
+      if (recipe.length > 0) {
+        await tx.recipeComponent.createMany({
+          data: recipe.map((r) => ({
+            menuItemId: existing.id,
+            inventoryItemId: r.inventoryItemId,
+            quantity: r.quantity,
+          })),
+        });
+      }
+    }
+    // Replace the combo component set when provided.
+    if (comboComponents) {
+      await tx.comboComponent.deleteMany({ where: { comboItemId: existing.id } });
+      if (comboComponents.length > 0) {
+        await tx.comboComponent.createMany({
+          data: comboComponents.map((c) => ({
+            comboItemId: existing.id,
+            componentItemId: c.componentItemId,
+            quantity: c.quantity,
           })),
         });
       }
@@ -157,6 +196,15 @@ menuRouter.delete("/items/:id", requireAuth(["user"]), async (req, res) => {
   if (orderCount > 0) {
     return res.status(409).json({
       message: "This item has order history. Deactivate it instead of deleting.",
+    });
+  }
+
+  // Can't delete an item that's a component of a combo — remove it from the
+  // combo(s) first.
+  const comboUse = await prisma.comboComponent.count({ where: { componentItemId: existing.id } });
+  if (comboUse > 0) {
+    return res.status(409).json({
+      message: "This item is part of a combo. Remove it from the combo before deleting.",
     });
   }
 

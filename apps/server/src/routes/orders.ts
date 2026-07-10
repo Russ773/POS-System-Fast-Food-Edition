@@ -44,12 +44,31 @@ ordersRouter.post("/", requireAuth(["device", "employee"]), async (req, res) => 
   const menuItemIds = parsed.data.items.map((i) => i.menuItemId);
   const menuItems = await prisma.menuItem.findMany({
     where: { id: { in: menuItemIds }, orgId: req.auth!.orgId },
-    include: { modifierGroups: { include: { modifiers: true } }, ingredients: true },
+    include: {
+      modifierGroups: { include: { modifiers: true } },
+      ingredients: true,
+      recipe: true,
+      // For combos, pull each component item's own recipe so stock depletes too.
+      comboComponents: { include: { componentItem: { include: { recipe: true } } } },
+    },
   });
   const menuItemMap = new Map(menuItems.map((m) => [m.id, m]));
 
+  // inventoryItemId -> total quantity to deduct across the whole order.
+  const stockDeductions = new Map<string, number>();
+  function deduct(inventoryItemId: string, qty: number) {
+    stockDeductions.set(inventoryItemId, (stockDeductions.get(inventoryItemId) ?? 0) + qty);
+  }
+
   let totalCents = 0;
-  const orderItemsData = [];
+  const orderItemsData: {
+    menuItemId: string;
+    quantity: number;
+    unitPriceCents: number;
+    notes: string | undefined;
+    selectedModifiers: { modifierId: string; name: string; priceDeltaCents: number }[];
+    customizations: { ingredientId: string; name: string; action: "NO" | "ADD" | "EXTRA"; priceDeltaCents: number }[];
+  }[] = [];
   for (const line of parsed.data.items) {
     const menuItem = menuItemMap.get(line.menuItemId);
     if (!menuItem) return res.status(400).json({ message: `Unknown menuItemId ${line.menuItemId}` });
@@ -105,6 +124,17 @@ ordersRouter.post("/", requireAuth(["device", "employee"]), async (req, res) => 
       customizations.reduce((s, c) => s + c.priceDeltaCents, 0);
     totalCents += unitPriceCents * line.quantity;
 
+    // Accumulate stock usage: an item's own recipe, plus (for combos) each
+    // component item's recipe times its combo quantity, all times the line qty.
+    for (const r of menuItem.recipe) {
+      deduct(r.inventoryItemId, r.quantity * line.quantity);
+    }
+    for (const cc of menuItem.comboComponents) {
+      for (const r of cc.componentItem.recipe) {
+        deduct(r.inventoryItemId, r.quantity * cc.quantity * line.quantity);
+      }
+    }
+
     orderItemsData.push({
       menuItemId: menuItem.id,
       quantity: line.quantity,
@@ -115,16 +145,26 @@ ordersRouter.post("/", requireAuth(["device", "employee"]), async (req, res) => 
     });
   }
 
-  const order = await prisma.order.create({
-    data: {
-      locationId,
-      employeeId: parsed.data.employeeId ?? (req.auth!.type === "employee" ? req.auth!.sub : undefined),
-      orderType: parsed.data.orderType,
-      clientRefId: parsed.data.clientRefId,
-      totalCents,
-      items: { create: orderItemsData },
-    },
-    include: orderInclude,
+  // Create the order and deplete inventory atomically.
+  const order = await prisma.$transaction(async (tx) => {
+    const created = await tx.order.create({
+      data: {
+        locationId,
+        employeeId: parsed.data.employeeId ?? (req.auth!.type === "employee" ? req.auth!.sub : undefined),
+        orderType: parsed.data.orderType,
+        clientRefId: parsed.data.clientRefId,
+        totalCents,
+        items: { create: orderItemsData },
+      },
+      include: orderInclude,
+    });
+    for (const [inventoryItemId, qty] of stockDeductions) {
+      await tx.inventoryItem.update({
+        where: { id: inventoryItemId },
+        data: { quantityOnHand: { decrement: qty } },
+      });
+    }
+    return created;
   });
 
   const dto = toOrderDTO(order);

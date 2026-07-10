@@ -11,6 +11,8 @@ export type {
   ModifierGroup,
   Modifier,
   MenuItemIngredient,
+  RecipeComponent,
+  ComboComponent,
   InventoryItem,
   Order,
   OrderItem,

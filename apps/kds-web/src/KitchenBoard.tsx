@@ -46,6 +46,15 @@ export function KitchenBoard({ locationId }: { locationId: string }) {
                       {order.items.map((item) => (
                         <li key={item.id}>
                           <strong>{item.quantity}×</strong> {item.menuItemName}
+                          {item.comboItems.length > 0 && (
+                            <div className="kds-ticket__combo">
+                              {item.comboItems.map((c, i) => (
+                                <span key={i}>
+                                  {c.quantity}× {c.name}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                           {item.selectedModifiers.length > 0 && (
                             <div className="kds-ticket__mods">
                               {item.selectedModifiers.map((m) => m.name).join(", ")}

@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Button, Card, Input, Select } from "@pos/ui";
-import type { MenuCategory, MenuItem } from "@pos/shared";
+import type { InventoryItem, MenuCategory, MenuItem } from "@pos/shared";
 import { api } from "../api";
 import { centsToDollars, dollarsToCents } from "../format";
 import {
@@ -9,15 +9,34 @@ import {
   draftsToRequests,
   ingredientsToDrafts,
 } from "./IngredientsEditor";
+import {
+  ComboComponentsEditor,
+  ComboDraft,
+  RecipeDraft,
+  RecipeEditor,
+  comboDraftsToRequests,
+  comboToDrafts,
+  recipeDraftsToRequests,
+  recipeToDrafts,
+} from "./RecipeEditor";
 
 interface Props {
   item: MenuItem;
   categories: MenuCategory[];
+  inventoryItems: InventoryItem[];
+  allItems: MenuItem[];
   onClose: () => void;
   onSaved: () => void;
 }
 
-export function EditItemDialog({ item, categories, onClose, onSaved }: Props) {
+export function EditItemDialog({
+  item,
+  categories,
+  inventoryItems,
+  allItems,
+  onClose,
+  onSaved,
+}: Props) {
   const [name, setName] = useState(item.name);
   const [price, setPrice] = useState(centsToDollars(item.priceCents).replace("$", ""));
   const [categoryId, setCategoryId] = useState(item.categoryId);
@@ -26,8 +45,15 @@ export function EditItemDialog({ item, categories, onClose, onSaved }: Props) {
   const [ingredients, setIngredients] = useState<DraftIngredient[]>(
     ingredientsToDrafts(item.ingredients),
   );
+  const [recipe, setRecipe] = useState<RecipeDraft[]>(recipeToDrafts(item.recipe));
+  const [comboComponents, setComboComponents] = useState<ComboDraft[]>(
+    comboToDrafts(item.comboComponents),
+  );
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // Combo components can be any non-combo item other than this one.
+  const componentOptions = allItems.filter((i) => !i.isCombo && i.id !== item.id);
 
   async function save(e: FormEvent) {
     e.preventDefault();
@@ -41,6 +67,8 @@ export function EditItemDialog({ item, categories, onClose, onSaved }: Props) {
         description: description.trim(),
         isActive,
         ingredients: draftsToRequests(ingredients),
+        recipe: recipeDraftsToRequests(recipe),
+        ...(item.isCombo ? { comboComponents: comboDraftsToRequests(comboComponents) } : {}),
       });
       onSaved();
     } catch (err) {
@@ -82,7 +110,16 @@ export function EditItemDialog({ item, categories, onClose, onSaved }: Props) {
             />
             Active (shown on POS)
           </label>
-          <IngredientsEditor value={ingredients} onChange={setIngredients} />
+          {item.isCombo ? (
+            <ComboComponentsEditor
+              value={comboComponents}
+              onChange={setComboComponents}
+              options={componentOptions}
+            />
+          ) : (
+            <IngredientsEditor value={ingredients} onChange={setIngredients} />
+          )}
+          <RecipeEditor value={recipe} onChange={setRecipe} inventoryItems={inventoryItems} />
           {error && <p className="login-error">{error}</p>}
           <div className="edit-modal__actions">
             <Button type="button" variant="ghost" onClick={onClose} disabled={saving}>

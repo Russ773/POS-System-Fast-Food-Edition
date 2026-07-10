@@ -4,6 +4,8 @@ import type { MenuItem, Order } from "@pos/shared";
 const menuItemInclude = {
   modifierGroups: { include: { modifiers: true } },
   ingredients: { orderBy: { sortOrder: "asc" } },
+  recipe: { include: { inventoryItem: true } },
+  comboComponents: { include: { componentItem: true } },
 } satisfies Prisma.MenuItemInclude;
 
 export type MenuItemWithGroups = Prisma.MenuItemGetPayload<{ include: typeof menuItemInclude }>;
@@ -18,6 +20,7 @@ export function toMenuItemDTO(item: MenuItemWithGroups): MenuItem {
     priceCents: item.priceCents,
     imageUrl: item.imageUrl,
     isActive: item.isActive,
+    isCombo: item.isCombo,
     modifierGroups: item.modifierGroups.map((g) => ({
       id: g.id,
       menuItemId: g.menuItemId,
@@ -41,13 +44,30 @@ export function toMenuItemDTO(item: MenuItemWithGroups): MenuItem {
       extraPriceCents: ing.extraPriceCents,
       sortOrder: ing.sortOrder,
     })),
+    recipe: item.recipe.map((r) => ({
+      id: r.id,
+      inventoryItemId: r.inventoryItemId,
+      inventoryItemName: r.inventoryItem.name,
+      unit: r.inventoryItem.unit,
+      quantity: r.quantity,
+    })),
+    comboComponents: item.comboComponents.map((c) => ({
+      id: c.id,
+      componentItemId: c.componentItemId,
+      name: c.componentItem.name,
+      quantity: c.quantity,
+    })),
   };
 }
 
 export { menuItemInclude };
 
 const orderInclude = {
-  items: { include: { menuItem: true } },
+  items: {
+    include: {
+      menuItem: { include: { comboComponents: { include: { componentItem: true } } } },
+    },
+  },
   payments: true,
 } satisfies Prisma.OrderInclude;
 
@@ -74,6 +94,10 @@ export function toOrderDTO(order: OrderWithItems): Order {
       notes: oi.notes,
       selectedModifiers: (oi.selectedModifiers as Order["items"][number]["selectedModifiers"]) ?? [],
       customizations: (oi.customizations as Order["items"][number]["customizations"]) ?? [],
+      comboItems: oi.menuItem.comboComponents.map((c) => ({
+        name: c.componentItem.name,
+        quantity: c.quantity,
+      })),
     })),
     payments: order.payments.map((p) => ({
       id: p.id,

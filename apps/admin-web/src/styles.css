@@ -237,6 +237,17 @@ body,
   gap: var(--pos-space-2);
 }
 
+.combo-badge {
+  margin-left: var(--pos-space-2);
+  background: var(--pos-color-warning);
+  color: #1f2937;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 4px;
+  vertical-align: middle;
+}
+
 /* Edit modal */
 .modal-backdrop {
   position: fixed;

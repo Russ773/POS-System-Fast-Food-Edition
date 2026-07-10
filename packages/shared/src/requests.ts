@@ -80,14 +80,29 @@ export const createIngredientRequestSchema = z.object({
 });
 export type CreateIngredientRequest = z.infer<typeof createIngredientRequestSchema>;
 
+export const recipeComponentRequestSchema = z.object({
+  inventoryItemId: z.string().uuid(),
+  quantity: z.number().nonnegative(),
+});
+export type RecipeComponentRequest = z.infer<typeof recipeComponentRequestSchema>;
+
+export const comboComponentRequestSchema = z.object({
+  componentItemId: z.string().uuid(),
+  quantity: z.number().int().positive().default(1),
+});
+export type ComboComponentRequest = z.infer<typeof comboComponentRequestSchema>;
+
 export const createMenuItemRequestSchema = z.object({
   categoryId: z.string().uuid(),
   name: z.string().min(1),
   description: z.string().optional(),
   priceCents: z.number().int().nonnegative(),
   imageUrl: z.string().optional(),
+  isCombo: z.boolean().default(false),
   modifierGroups: z.array(createModifierGroupRequestSchema).default([]),
   ingredients: z.array(createIngredientRequestSchema).default([]),
+  recipe: z.array(recipeComponentRequestSchema).default([]),
+  comboComponents: z.array(comboComponentRequestSchema).default([]),
 });
 export type CreateMenuItemRequest = z.infer<typeof createMenuItemRequestSchema>;
 
@@ -102,6 +117,9 @@ export const updateMenuItemRequestSchema = z.object({
   // ingredients untouched. Safe to replace: orders snapshot customizations as
   // JSON, so historical orders don't reference these rows.
   ingredients: z.array(createIngredientRequestSchema).optional(),
+  // When present, replace the recipe (stock usage) / combo component set.
+  recipe: z.array(recipeComponentRequestSchema).optional(),
+  comboComponents: z.array(comboComponentRequestSchema).optional(),
 });
 export type UpdateMenuItemRequest = z.infer<typeof updateMenuItemRequestSchema>;
 
