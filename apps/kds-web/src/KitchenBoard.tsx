@@ -46,12 +46,31 @@ export function KitchenBoard({ locationId }: { locationId: string }) {
                       {order.items.map((item) => (
                         <li key={item.id}>
                           <strong>{item.quantity}×</strong> {item.menuItemName}
-                          {item.comboItems.length > 0 && (
+                          {item.mealItems.length > 0 && (
                             <div className="kds-ticket__combo">
-                              {item.comboItems.map((c, i) => (
-                                <span key={i}>
-                                  {c.quantity}× {c.name}
-                                </span>
+                              {item.mealItems.map((c, i) => (
+                                <div key={i}>
+                                  <span>
+                                    {c.quantity}× {c.name}
+                                  </span>
+                                  {(c.selectedModifiers.length > 0 || c.customizations.length > 0) && (
+                                    <div className="kds-ticket__customizations">
+                                      {c.selectedModifiers.map((m) => (
+                                        <span key={m.modifierId} className="kds-chip kds-chip--add">
+                                          {m.name}
+                                        </span>
+                                      ))}
+                                      {c.customizations.map((z) => (
+                                        <span
+                                          key={z.ingredientId}
+                                          className={`kds-chip kds-chip--${z.action === "NO" ? "no" : "add"}`}
+                                        >
+                                          {z.action} {z.name}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
                               ))}
                             </div>
                           )}

@@ -131,17 +131,17 @@ model MenuItem {
   priceCents  Int
   imageUrl    String?
   isActive    Boolean  @default(true)
-  isCombo     Boolean  @default(false) // bundles other items at a set price
+  isMeal      Boolean  @default(false) @map("isCombo") // bundles other items at a set price
   createdAt   DateTime @default(now())
 
-  organization    Organization         @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  category        MenuCategory         @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  modifierGroups  ModifierGroup[]
-  ingredients     MenuItemIngredient[]
-  recipe          RecipeComponent[]
-  comboComponents ComboComponent[]     @relation("ComboParent")
-  partOfCombos    ComboComponent[]     @relation("ComboChild")
-  orderItems      OrderItem[]
+  organization   Organization         @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  category       MenuCategory         @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  modifierGroups ModifierGroup[]
+  ingredients    MenuItemIngredient[]
+  recipe         RecipeComponent[]
+  mealComponents MealComponent[]      @relation("MealParent")
+  partOfMeals    MealComponent[]      @relation("MealChild")
+  orderItems     OrderItem[]
 
   @@index([orgId])
   @@index([categoryId])
@@ -162,19 +162,20 @@ model RecipeComponent {
   @@index([inventoryItemId])
 }
 
-// A component of a combo: one menu item (componentItem) included in a combo
-// menu item (comboItem), with a quantity.
-model ComboComponent {
+// A component of a meal: one menu item (componentItem) included in a meal
+// menu item (mealItem), with a quantity.
+model MealComponent {
   id              String @id @default(uuid())
-  comboItemId     String
+  mealItemId      String @map("comboItemId")
   componentItemId String
   quantity        Int    @default(1)
 
-  comboItem     MenuItem @relation("ComboParent", fields: [comboItemId], references: [id], onDelete: Cascade)
-  componentItem MenuItem @relation("ComboChild", fields: [componentItemId], references: [id])
+  mealItem      MenuItem @relation("MealParent", fields: [mealItemId], references: [id], onDelete: Cascade)
+  componentItem MenuItem @relation("MealChild", fields: [componentItemId], references: [id])
 
-  @@index([comboItemId])
+  @@index([mealItemId])
   @@index([componentItemId])
+  @@map("ComboComponent")
 }
 
 // A build component of a menu item (lettuce, onion, cheese, ketchup...). Drives
@@ -263,6 +264,7 @@ model OrderItem {
   notes             String?
   selectedModifiers Json    @default("[]")
   customizations    Json    @default("[]") // applied ingredient changes: NO/ADD/EXTRA
+  mealSelections    Json    @default("[]") // for meal lines: per-component choices
 
   order    Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   menuItem MenuItem @relation(fields: [menuItemId], references: [id])

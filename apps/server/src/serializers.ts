@@ -5,7 +5,7 @@ const menuItemInclude = {
   modifierGroups: { include: { modifiers: true } },
   ingredients: { orderBy: { sortOrder: "asc" } },
   recipe: { include: { inventoryItem: true } },
-  comboComponents: { include: { componentItem: true } },
+  mealComponents: { include: { componentItem: true } },
 } satisfies Prisma.MenuItemInclude;
 
 export type MenuItemWithGroups = Prisma.MenuItemGetPayload<{ include: typeof menuItemInclude }>;
@@ -20,7 +20,7 @@ export function toMenuItemDTO(item: MenuItemWithGroups): MenuItem {
     priceCents: item.priceCents,
     imageUrl: item.imageUrl,
     isActive: item.isActive,
-    isCombo: item.isCombo,
+    isMeal: item.isMeal,
     modifierGroups: item.modifierGroups.map((g) => ({
       id: g.id,
       menuItemId: g.menuItemId,
@@ -51,7 +51,7 @@ export function toMenuItemDTO(item: MenuItemWithGroups): MenuItem {
       unit: r.inventoryItem.unit,
       quantity: r.quantity,
     })),
-    comboComponents: item.comboComponents.map((c) => ({
+    mealComponents: item.mealComponents.map((c) => ({
       id: c.id,
       componentItemId: c.componentItemId,
       name: c.componentItem.name,
@@ -65,7 +65,7 @@ export { menuItemInclude };
 const orderInclude = {
   items: {
     include: {
-      menuItem: { include: { comboComponents: { include: { componentItem: true } } } },
+      menuItem: { include: { mealComponents: { include: { componentItem: true } } } },
     },
   },
   payments: true,
@@ -94,10 +94,17 @@ export function toOrderDTO(order: OrderWithItems): Order {
       notes: oi.notes,
       selectedModifiers: (oi.selectedModifiers as Order["items"][number]["selectedModifiers"]) ?? [],
       customizations: (oi.customizations as Order["items"][number]["customizations"]) ?? [],
-      comboItems: oi.menuItem.comboComponents.map((c) => ({
-        name: c.componentItem.name,
-        quantity: c.quantity,
-      })),
+      // Prefer the stored per-component selections (with customisations); fall
+      // back to the meal's component list (names only) for older orders.
+      mealItems:
+        (oi.mealSelections as Order["items"][number]["mealItems"])?.length
+          ? (oi.mealSelections as Order["items"][number]["mealItems"])
+          : oi.menuItem.mealComponents.map((c) => ({
+              name: c.componentItem.name,
+              quantity: c.quantity,
+              selectedModifiers: [],
+              customizations: [],
+            })),
     })),
     payments: order.payments.map((p) => ({
       id: p.id,

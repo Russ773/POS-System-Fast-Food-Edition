@@ -132,6 +132,17 @@ body,
   color: white;
 }
 
+.pos-cat-tab--meals {
+  border-color: var(--pos-color-warning);
+  color: var(--pos-color-warning);
+}
+
+.pos-cat-tab--meals.is-active {
+  background: var(--pos-color-warning);
+  border-color: var(--pos-color-warning);
+  color: #1f2937;
+}
+
 .pos-item-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -314,6 +325,32 @@ body,
 .pos-mod-option.is-selected {
   border-color: var(--pos-color-primary);
   background: #1d4ed833;
+}
+
+/* Meal component list */
+.pos-meal-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pos-space-2);
+}
+
+.pos-meal-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pos-space-3);
+  padding: var(--pos-space-2) 0;
+  border-bottom: 1px solid var(--pos-color-border);
+}
+
+.pos-meal-row__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pos-meal-row__name {
+  font-weight: 600;
 }
 
 /* Ingredient customization rows */

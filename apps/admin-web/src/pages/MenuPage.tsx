@@ -10,9 +10,9 @@ import {
   draftsToRequests,
 } from "../components/IngredientsEditor";
 import {
-  ComboComponentsEditor,
-  ComboDraft,
-  comboDraftsToRequests,
+  MealComponentsEditor,
+  MealDraft,
+  mealDraftsToRequests,
 } from "../components/RecipeEditor";
 import { EditItemDialog } from "../components/EditItemDialog";
 
@@ -31,9 +31,9 @@ export function MenuPage() {
   const [itemIngredients, setItemIngredients] = useState<DraftIngredient[]>([]);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
 
-  const [comboName, setComboName] = useState("");
-  const [comboPrice, setComboPrice] = useState("");
-  const [comboItems, setComboItems] = useState<ComboDraft[]>([]);
+  const [mealName, setMealName] = useState("");
+  const [mealPrice, setMealPrice] = useState("");
+  const [mealItems, setMealItems] = useState<MealDraft[]>([]);
 
   async function load() {
     const [cats, its] = await Promise.all([api.menu.listCategories(), api.menu.listItems()]);
@@ -73,11 +73,11 @@ export function MenuPage() {
         name: itemName.trim(),
         description: itemDescription.trim() || undefined,
         priceCents: dollarsToCents(itemPrice),
-        isCombo: false,
+        isMeal: false,
         modifierGroups: [],
         ingredients: draftsToRequests(itemIngredients),
         recipe: [],
-        comboComponents: [],
+        mealComponents: [],
       });
       setItemName("");
       setItemPrice("");
@@ -89,26 +89,26 @@ export function MenuPage() {
     }
   }
 
-  async function addCombo(e: FormEvent) {
+  async function addMeal(e: FormEvent) {
     e.preventDefault();
     setError(null);
     try {
       await api.menu.createItem({
         categoryId: itemCategoryId,
-        name: comboName.trim(),
-        priceCents: dollarsToCents(comboPrice),
-        isCombo: true,
+        name: mealName.trim(),
+        priceCents: dollarsToCents(mealPrice),
+        isMeal: true,
         modifierGroups: [],
         ingredients: [],
         recipe: [],
-        comboComponents: comboDraftsToRequests(comboItems),
+        mealComponents: mealDraftsToRequests(mealItems),
       });
-      setComboName("");
-      setComboPrice("");
-      setComboItems([]);
+      setMealName("");
+      setMealPrice("");
+      setMealItems([]);
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to add combo");
+      setError(err instanceof Error ? err.message : "Failed to add meal");
     }
   }
 
@@ -188,26 +188,26 @@ export function MenuPage() {
       </div>
 
       <Card>
-        <h2>Create Combo</h2>
-        <form onSubmit={addCombo} className="stack-form">
-          <Input label="Combo name" value={comboName} onChange={(e) => setComboName(e.target.value)} />
+        <h2>Create Meal</h2>
+        <form onSubmit={addMeal} className="stack-form">
+          <Input label="Meal name" value={mealName} onChange={(e) => setMealName(e.target.value)} />
           <Input
-            label="Combo price (USD)"
+            label="Meal price (USD)"
             type="number"
             step="0.01"
-            value={comboPrice}
-            onChange={(e) => setComboPrice(e.target.value)}
+            value={mealPrice}
+            onChange={(e) => setMealPrice(e.target.value)}
           />
-          <ComboComponentsEditor
-            value={comboItems}
-            onChange={setComboItems}
-            options={items.filter((i) => !i.isCombo)}
+          <MealComponentsEditor
+            value={mealItems}
+            onChange={setMealItems}
+            options={items.filter((i) => !i.isMeal)}
           />
           <Button
             type="submit"
-            disabled={!comboName || !comboPrice || comboDraftsToRequests(comboItems).length === 0}
+            disabled={!mealName || !mealPrice || mealDraftsToRequests(mealItems).length === 0}
           >
-            Create Combo
+            Create Meal
           </Button>
         </form>
       </Card>
@@ -230,14 +230,14 @@ export function MenuPage() {
               <tr key={item.id}>
                 <td>
                   {item.name}
-                  {item.isCombo && <span className="combo-badge">COMBO</span>}
+                  {item.isMeal && <span className="combo-badge">MEAL</span>}
                 </td>
                 <td>{categories.find((c) => c.id === item.categoryId)?.name ?? "—"}</td>
                 <td>{centsToDollars(item.priceCents)}</td>
                 <td>{item.modifierGroups.map((g) => g.name).join(", ") || "—"}</td>
                 <td>
-                  {item.isCombo
-                    ? item.comboComponents.map((c) => `${c.quantity}× ${c.name}`).join(", ")
+                  {item.isMeal
+                    ? item.mealComponents.map((c) => `${c.quantity}× ${c.name}`).join(", ")
                     : item.ingredients.map((i) => i.name).join(", ") || "—"}
                 </td>
                 <td className="row-actions">

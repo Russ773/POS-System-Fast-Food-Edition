@@ -12,6 +12,57 @@ import { emitOrderCreated, emitOrderUpdated } from "../socket.js";
 
 export const ordersRouter = Router();
 
+type ModifierLike = { id: string; name: string; priceDeltaCents: number };
+type IngredientLike = {
+  id: string;
+  name: string;
+  includedByDefault: boolean;
+  removable: boolean;
+  addable: boolean;
+  extraPriceCents: number;
+};
+type CustomizableSource = { modifierGroups: { modifiers: ModifierLike[] }[]; ingredients: IngredientLike[] };
+type SelectedModifier = { modifierId: string; name: string; priceDeltaCents: number };
+type AppliedCustomization = { ingredientId: string; name: string; action: "NO" | "ADD" | "EXTRA"; priceDeltaCents: number };
+
+// Validate selected modifiers + ingredient customisations against an item's
+// options, returning the priced selections (or an error message). Shared by the
+// ordered item itself and by each customisable meal component.
+function resolveSelections(
+  source: CustomizableSource,
+  selectedModifierIds: string[],
+  customizations: { ingredientId: string; action: "NO" | "ADD" | "EXTRA" }[],
+):
+  | { ok: true; selectedModifiers: SelectedModifier[]; customizations: AppliedCustomization[]; deltaCents: number }
+  | { ok: false; error: string } {
+  const allModifiers = source.modifierGroups.flatMap((g) => g.modifiers);
+  const selectedModifiers: SelectedModifier[] = [];
+  for (const id of selectedModifierIds) {
+    const modifier = allModifiers.find((m) => m.id === id);
+    if (!modifier) return { ok: false, error: `Unknown modifierId ${id}` };
+    selectedModifiers.push({ modifierId: modifier.id, name: modifier.name, priceDeltaCents: modifier.priceDeltaCents });
+  }
+
+  const applied: AppliedCustomization[] = [];
+  for (const c of customizations) {
+    const ing = source.ingredients.find((i) => i.id === c.ingredientId);
+    if (!ing) return { ok: false, error: `Unknown ingredientId ${c.ingredientId}` };
+    if (c.action === "NO" && !(ing.includedByDefault && ing.removable)) {
+      return { ok: false, error: `${ing.name} cannot be removed` };
+    }
+    if ((c.action === "ADD" || c.action === "EXTRA") && !ing.addable) {
+      return { ok: false, error: `${ing.name} cannot be added` };
+    }
+    const priceDeltaCents = c.action === "NO" ? 0 : ing.extraPriceCents;
+    applied.push({ ingredientId: ing.id, name: ing.name, action: c.action, priceDeltaCents });
+  }
+
+  const deltaCents =
+    selectedModifiers.reduce((s, m) => s + m.priceDeltaCents, 0) +
+    applied.reduce((s, c) => s + c.priceDeltaCents, 0);
+  return { ok: true, selectedModifiers, customizations: applied, deltaCents };
+}
+
 ordersRouter.get("/", requireAuth(["user", "device", "employee"]), async (req, res) => {
   const status = req.query.status as string | undefined;
   const locationId = authLocationId(req.auth!) ?? (req.query.locationId as string | undefined);
@@ -48,8 +99,19 @@ ordersRouter.post("/", requireAuth(["device", "employee"]), async (req, res) => 
       modifierGroups: { include: { modifiers: true } },
       ingredients: true,
       recipe: true,
-      // For combos, pull each component item's own recipe so stock depletes too.
-      comboComponents: { include: { componentItem: { include: { recipe: true } } } },
+      // For meals, pull each component item's own recipe so stock depletes too,
+      // plus its modifiers/ingredients so component customisations can be priced.
+      mealComponents: {
+        include: {
+          componentItem: {
+            include: {
+              recipe: true,
+              modifierGroups: { include: { modifiers: true } },
+              ingredients: true,
+            },
+          },
+        },
+      },
     },
   });
   const menuItemMap = new Map(menuItems.map((m) => [m.id, m]));
@@ -60,78 +122,65 @@ ordersRouter.post("/", requireAuth(["device", "employee"]), async (req, res) => 
     stockDeductions.set(inventoryItemId, (stockDeductions.get(inventoryItemId) ?? 0) + qty);
   }
 
+  type MealSelectionSnapshot = {
+    name: string;
+    quantity: number;
+    selectedModifiers: SelectedModifier[];
+    customizations: AppliedCustomization[];
+  };
   let totalCents = 0;
   const orderItemsData: {
     menuItemId: string;
     quantity: number;
     unitPriceCents: number;
     notes: string | undefined;
-    selectedModifiers: { modifierId: string; name: string; priceDeltaCents: number }[];
-    customizations: { ingredientId: string; name: string; action: "NO" | "ADD" | "EXTRA"; priceDeltaCents: number }[];
+    selectedModifiers: SelectedModifier[];
+    customizations: AppliedCustomization[];
+    mealSelections: MealSelectionSnapshot[];
   }[] = [];
   for (const line of parsed.data.items) {
     const menuItem = menuItemMap.get(line.menuItemId);
     if (!menuItem) return res.status(400).json({ message: `Unknown menuItemId ${line.menuItemId}` });
 
-    const allModifiers = menuItem.modifierGroups.flatMap((g) => g.modifiers);
-    const selected: { modifierId: string; name: string; priceDeltaCents: number }[] = [];
-    let invalidModifierId: string | undefined;
-    for (const id of line.selectedModifierIds) {
-      const modifier = allModifiers.find((m) => m.id === id);
-      if (!modifier) {
-        invalidModifierId = id;
-        break;
+    // Resolve the item's own modifiers + ingredient customisations.
+    const own = resolveSelections(menuItem, line.selectedModifierIds, line.customizations);
+    if (!own.ok) return res.status(400).json({ message: own.error });
+    let lineExtraCents = own.deltaCents;
+
+    // For meals: build a snapshot of every component (so the kitchen sees the
+    // whole bundle), applying any per-component customisations and their price.
+    const mealSelections: MealSelectionSnapshot[] = [];
+    for (const mc of menuItem.mealComponents) {
+      const sel = line.mealSelections.find((s) => s.componentItemId === mc.componentItemId);
+      let compMods: SelectedModifier[] = [];
+      let compCust: AppliedCustomization[] = [];
+      if (sel) {
+        const resolved = resolveSelections(mc.componentItem, sel.selectedModifierIds, sel.customizations);
+        if (!resolved.ok) return res.status(400).json({ message: resolved.error });
+        compMods = resolved.selectedModifiers;
+        compCust = resolved.customizations;
+        lineExtraCents += resolved.deltaCents * mc.quantity;
       }
-      selected.push({ modifierId: modifier.id, name: modifier.name, priceDeltaCents: modifier.priceDeltaCents });
-    }
-    if (invalidModifierId) {
-      return res.status(400).json({ message: `Unknown modifierId ${invalidModifierId}` });
+      mealSelections.push({
+        name: mc.componentItem.name,
+        quantity: mc.quantity,
+        selectedModifiers: compMods,
+        customizations: compCust,
+      });
     }
 
-    // Validate + price ingredient customizations (no onion / extra cheese / add ketchup).
-    const customizations: {
-      ingredientId: string;
-      name: string;
-      action: "NO" | "ADD" | "EXTRA";
-      priceDeltaCents: number;
-    }[] = [];
-    let customizationError: string | undefined;
-    for (const c of line.customizations) {
-      const ing = menuItem.ingredients.find((i) => i.id === c.ingredientId);
-      if (!ing) {
-        customizationError = `Unknown ingredientId ${c.ingredientId}`;
-        break;
-      }
-      if (c.action === "NO" && !(ing.includedByDefault && ing.removable)) {
-        customizationError = `${ing.name} cannot be removed`;
-        break;
-      }
-      if ((c.action === "ADD" || c.action === "EXTRA") && !ing.addable) {
-        customizationError = `${ing.name} cannot be added`;
-        break;
-      }
-      // Holding an ingredient is free; adding or doubling up costs the extra price.
-      const priceDeltaCents = c.action === "NO" ? 0 : ing.extraPriceCents;
-      customizations.push({ ingredientId: ing.id, name: ing.name, action: c.action, priceDeltaCents });
-    }
-    if (customizationError) {
-      return res.status(400).json({ message: customizationError });
-    }
-
-    const unitPriceCents =
-      menuItem.priceCents +
-      selected.reduce((s, m) => s + m.priceDeltaCents, 0) +
-      customizations.reduce((s, c) => s + c.priceDeltaCents, 0);
+    // Meal set price already covers component base prices; only add extras.
+    const unitPriceCents = menuItem.priceCents + lineExtraCents;
     totalCents += unitPriceCents * line.quantity;
 
-    // Accumulate stock usage: an item's own recipe, plus (for combos) each
-    // component item's recipe times its combo quantity, all times the line qty.
+    // Accumulate stock usage: an item's own recipe, plus (for meals) each
+    // component item's recipe times its meal quantity, all times the line qty.
     for (const r of menuItem.recipe) {
       deduct(r.inventoryItemId, r.quantity * line.quantity);
     }
-    for (const cc of menuItem.comboComponents) {
-      for (const r of cc.componentItem.recipe) {
-        deduct(r.inventoryItemId, r.quantity * cc.quantity * line.quantity);
+    for (const mc of menuItem.mealComponents) {
+      for (const r of mc.componentItem.recipe) {
+        deduct(r.inventoryItemId, r.quantity * mc.quantity * line.quantity);
       }
     }
 
@@ -140,8 +189,9 @@ ordersRouter.post("/", requireAuth(["device", "employee"]), async (req, res) => 
       quantity: line.quantity,
       unitPriceCents,
       notes: line.notes,
-      selectedModifiers: selected,
-      customizations,
+      selectedModifiers: own.selectedModifiers,
+      customizations: own.customizations,
+      mealSelections,
     });
   }
 

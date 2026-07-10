@@ -1,7 +1,7 @@
 import { Button } from "@pos/ui";
 import type {
-  ComboComponentRequest,
   InventoryItem,
+  MealComponentRequest,
   MenuItem,
   RecipeComponent,
   RecipeComponentRequest,
@@ -86,39 +86,39 @@ export function RecipeEditor({
   );
 }
 
-// ---- Combo components ----
+// ---- Meal components ----
 
-export interface ComboDraft {
+export interface MealDraft {
   componentItemId: string;
   quantity: string;
 }
 
-export function comboToDrafts(components: { componentItemId: string; quantity: number }[]): ComboDraft[] {
+export function mealToDrafts(components: { componentItemId: string; quantity: number }[]): MealDraft[] {
   return components.map((c) => ({ componentItemId: c.componentItemId, quantity: String(c.quantity) }));
 }
 
-export function comboDraftsToRequests(drafts: ComboDraft[]): ComboComponentRequest[] {
+export function mealDraftsToRequests(drafts: MealDraft[]): MealComponentRequest[] {
   return drafts
     .filter((d) => d.componentItemId && parseInt(d.quantity) > 0)
     .map((d) => ({ componentItemId: d.componentItemId, quantity: parseInt(d.quantity) }));
 }
 
-export function ComboComponentsEditor({
+export function MealComponentsEditor({
   value,
   onChange,
   options,
 }: {
-  value: ComboDraft[];
-  onChange: (next: ComboDraft[]) => void;
-  options: MenuItem[]; // selectable component items (non-combo)
+  value: MealDraft[];
+  onChange: (next: MealDraft[]) => void;
+  options: MenuItem[]; // selectable component items (non-meal)
 }) {
-  function update(idx: number, patch: Partial<ComboDraft>) {
+  function update(idx: number, patch: Partial<MealDraft>) {
     onChange(value.map((row, i) => (i === idx ? { ...row, ...patch } : row)));
   }
   return (
     <div className="ing-editor">
       <div className="ing-editor__head">
-        <span>Combo includes</span>
+        <span>Meal includes</span>
         <Button
           type="button"
           variant="ghost"
@@ -128,7 +128,7 @@ export function ComboComponentsEditor({
           + Add item
         </Button>
       </div>
-      {value.length === 0 && <p className="muted">Add the items included in this combo.</p>}
+      {value.length === 0 && <p className="muted">Add the items included in this meal.</p>}
       {value.map((row, idx) => (
         <div key={idx} className="ing-row">
           <select

@@ -85,7 +85,7 @@ menuRouter.post("/items", requireAuth(["user"]), async (req, res) => {
       description: parsed.data.description,
       priceCents: parsed.data.priceCents,
       imageUrl: parsed.data.imageUrl,
-      isCombo: parsed.data.isCombo,
+      isMeal: parsed.data.isMeal,
       modifierGroups: {
         create: parsed.data.modifierGroups.map((g) => ({
           name: g.name,
@@ -110,8 +110,8 @@ menuRouter.post("/items", requireAuth(["user"]), async (req, res) => {
           quantity: r.quantity,
         })),
       },
-      comboComponents: {
-        create: parsed.data.comboComponents.map((c) => ({
+      mealComponents: {
+        create: parsed.data.mealComponents.map((c) => ({
           componentItemId: c.componentItemId,
           quantity: c.quantity,
         })),
@@ -131,7 +131,7 @@ menuRouter.patch("/items/:id", requireAuth(["user"]), async (req, res) => {
   });
   if (!existing) return res.status(404).json({ message: "Menu item not found" });
 
-  const { ingredients, recipe, comboComponents, ...fields } = parsed.data;
+  const { ingredients, recipe, mealComponents, ...fields } = parsed.data;
 
   const item = await prisma.$transaction(async (tx) => {
     await tx.menuItem.update({ where: { id: existing.id }, data: fields });
@@ -165,13 +165,13 @@ menuRouter.patch("/items/:id", requireAuth(["user"]), async (req, res) => {
         });
       }
     }
-    // Replace the combo component set when provided.
-    if (comboComponents) {
-      await tx.comboComponent.deleteMany({ where: { comboItemId: existing.id } });
-      if (comboComponents.length > 0) {
-        await tx.comboComponent.createMany({
-          data: comboComponents.map((c) => ({
-            comboItemId: existing.id,
+    // Replace the meal component set when provided.
+    if (mealComponents) {
+      await tx.mealComponent.deleteMany({ where: { mealItemId: existing.id } });
+      if (mealComponents.length > 0) {
+        await tx.mealComponent.createMany({
+          data: mealComponents.map((c) => ({
+            mealItemId: existing.id,
             componentItemId: c.componentItemId,
             quantity: c.quantity,
           })),
@@ -199,12 +199,12 @@ menuRouter.delete("/items/:id", requireAuth(["user"]), async (req, res) => {
     });
   }
 
-  // Can't delete an item that's a component of a combo — remove it from the
-  // combo(s) first.
-  const comboUse = await prisma.comboComponent.count({ where: { componentItemId: existing.id } });
-  if (comboUse > 0) {
+  // Can't delete an item that's a component of a meal — remove it from the
+  // meal(s) first.
+  const mealUse = await prisma.mealComponent.count({ where: { componentItemId: existing.id } });
+  if (mealUse > 0) {
     return res.status(409).json({
-      message: "This item is part of a combo. Remove it from the combo before deleting.",
+      message: "This item is part of a meal. Remove it from the meal before deleting.",
     });
   }
 

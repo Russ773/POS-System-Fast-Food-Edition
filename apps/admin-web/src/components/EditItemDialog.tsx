@@ -10,12 +10,12 @@ import {
   ingredientsToDrafts,
 } from "./IngredientsEditor";
 import {
-  ComboComponentsEditor,
-  ComboDraft,
+  MealComponentsEditor,
+  MealDraft,
   RecipeDraft,
   RecipeEditor,
-  comboDraftsToRequests,
-  comboToDrafts,
+  mealDraftsToRequests,
+  mealToDrafts,
   recipeDraftsToRequests,
   recipeToDrafts,
 } from "./RecipeEditor";
@@ -46,14 +46,14 @@ export function EditItemDialog({
     ingredientsToDrafts(item.ingredients),
   );
   const [recipe, setRecipe] = useState<RecipeDraft[]>(recipeToDrafts(item.recipe));
-  const [comboComponents, setComboComponents] = useState<ComboDraft[]>(
-    comboToDrafts(item.comboComponents),
+  const [mealComponents, setMealComponents] = useState<MealDraft[]>(
+    mealToDrafts(item.mealComponents),
   );
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // Combo components can be any non-combo item other than this one.
-  const componentOptions = allItems.filter((i) => !i.isCombo && i.id !== item.id);
+  // Meal components can be any non-meal item other than this one.
+  const componentOptions = allItems.filter((i) => !i.isMeal && i.id !== item.id);
 
   async function save(e: FormEvent) {
     e.preventDefault();
@@ -68,7 +68,7 @@ export function EditItemDialog({
         isActive,
         ingredients: draftsToRequests(ingredients),
         recipe: recipeDraftsToRequests(recipe),
-        ...(item.isCombo ? { comboComponents: comboDraftsToRequests(comboComponents) } : {}),
+        ...(item.isMeal ? { mealComponents: mealDraftsToRequests(mealComponents) } : {}),
       });
       onSaved();
     } catch (err) {
@@ -110,10 +110,10 @@ export function EditItemDialog({
             />
             Active (shown on POS)
           </label>
-          {item.isCombo ? (
-            <ComboComponentsEditor
-              value={comboComponents}
-              onChange={setComboComponents}
+          {item.isMeal ? (
+            <MealComponentsEditor
+              value={mealComponents}
+              onChange={setMealComponents}
               options={componentOptions}
             />
           ) : (

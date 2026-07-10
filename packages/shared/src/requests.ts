@@ -86,11 +86,11 @@ export const recipeComponentRequestSchema = z.object({
 });
 export type RecipeComponentRequest = z.infer<typeof recipeComponentRequestSchema>;
 
-export const comboComponentRequestSchema = z.object({
+export const mealComponentRequestSchema = z.object({
   componentItemId: z.string().uuid(),
   quantity: z.number().int().positive().default(1),
 });
-export type ComboComponentRequest = z.infer<typeof comboComponentRequestSchema>;
+export type MealComponentRequest = z.infer<typeof mealComponentRequestSchema>;
 
 export const createMenuItemRequestSchema = z.object({
   categoryId: z.string().uuid(),
@@ -98,11 +98,11 @@ export const createMenuItemRequestSchema = z.object({
   description: z.string().optional(),
   priceCents: z.number().int().nonnegative(),
   imageUrl: z.string().optional(),
-  isCombo: z.boolean().default(false),
+  isMeal: z.boolean().default(false),
   modifierGroups: z.array(createModifierGroupRequestSchema).default([]),
   ingredients: z.array(createIngredientRequestSchema).default([]),
   recipe: z.array(recipeComponentRequestSchema).default([]),
-  comboComponents: z.array(comboComponentRequestSchema).default([]),
+  mealComponents: z.array(mealComponentRequestSchema).default([]),
 });
 export type CreateMenuItemRequest = z.infer<typeof createMenuItemRequestSchema>;
 
@@ -117,9 +117,9 @@ export const updateMenuItemRequestSchema = z.object({
   // ingredients untouched. Safe to replace: orders snapshot customizations as
   // JSON, so historical orders don't reference these rows.
   ingredients: z.array(createIngredientRequestSchema).optional(),
-  // When present, replace the recipe (stock usage) / combo component set.
+  // When present, replace the recipe (stock usage) / meal component set.
   recipe: z.array(recipeComponentRequestSchema).optional(),
-  comboComponents: z.array(comboComponentRequestSchema).optional(),
+  mealComponents: z.array(mealComponentRequestSchema).optional(),
 });
 export type UpdateMenuItemRequest = z.infer<typeof updateMenuItemRequestSchema>;
 
@@ -161,12 +161,22 @@ export const orderItemCustomizationRequestSchema = z.object({
 });
 export type OrderItemCustomizationRequest = z.infer<typeof orderItemCustomizationRequestSchema>;
 
+// Per-component choices when ordering a meal (customise the burger inside it).
+export const mealSelectionRequestSchema = z.object({
+  componentItemId: z.string().uuid(),
+  selectedModifierIds: z.array(z.string().uuid()).default([]),
+  customizations: z.array(orderItemCustomizationRequestSchema).default([]),
+});
+export type MealSelectionRequest = z.infer<typeof mealSelectionRequestSchema>;
+
 export const createOrderItemRequestSchema = z.object({
   menuItemId: z.string().uuid(),
   quantity: z.number().int().positive().default(1),
   notes: z.string().optional(),
   selectedModifierIds: z.array(z.string().uuid()).default([]),
   customizations: z.array(orderItemCustomizationRequestSchema).default([]),
+  // For meal lines: customisation of each included component.
+  mealSelections: z.array(mealSelectionRequestSchema).default([]),
 });
 
 export const createOrderRequestSchema = z.object({

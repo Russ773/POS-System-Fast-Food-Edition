@@ -105,16 +105,16 @@ async function main() {
     data: { menuItemId: cheeseburger.id, inventoryItemId: groundBeef.id, quantity: 0.25 },
   });
 
-  // A combo: Cheeseburger + Fries bundled at a set price.
+  // A meal: Cheeseburger + Fries bundled at a set price.
   await prisma.menuItem.create({
     data: {
       orgId: org.id,
       categoryId: burgers.id,
-      name: "Cheeseburger Combo",
+      name: "Cheeseburger Meal",
       description: "Cheeseburger + Fries",
       priceCents: 799,
-      isCombo: true,
-      comboComponents: {
+      isMeal: true,
+      mealComponents: {
         create: [
           { componentItemId: cheeseburger.id, quantity: 1 },
           { componentItemId: fries.id, quantity: 1 },

@@ -114,13 +114,13 @@ export const recipeComponentSchema = z.object({
 });
 export type RecipeComponent = z.infer<typeof recipeComponentSchema>;
 
-export const comboComponentSchema = z.object({
+export const mealComponentSchema = z.object({
   id: z.string().uuid(),
   componentItemId: z.string().uuid(),
   name: z.string(),
   quantity: z.number().int().positive(),
 });
-export type ComboComponent = z.infer<typeof comboComponentSchema>;
+export type MealComponent = z.infer<typeof mealComponentSchema>;
 
 export const menuItemSchema = z.object({
   id: z.string().uuid(),
@@ -131,11 +131,11 @@ export const menuItemSchema = z.object({
   priceCents: z.number().int().nonnegative(),
   imageUrl: z.string().nullable(),
   isActive: z.boolean(),
-  isCombo: z.boolean(),
+  isMeal: z.boolean(),
   modifierGroups: z.array(modifierGroupSchema),
   ingredients: z.array(menuItemIngredientSchema),
   recipe: z.array(recipeComponentSchema),
-  comboComponents: z.array(comboComponentSchema),
+  mealComponents: z.array(mealComponentSchema),
 });
 export type MenuItem = z.infer<typeof menuItemSchema>;
 
@@ -180,8 +180,18 @@ export const orderItemSchema = z.object({
   notes: z.string().nullable(),
   selectedModifiers: z.array(selectedModifierSchema),
   customizations: z.array(appliedCustomizationSchema),
-  // Populated for combo lines so the kitchen sees what's inside the bundle.
-  comboItems: z.array(z.object({ name: z.string(), quantity: z.number().int() })).default([]),
+  // Populated for meal lines so the kitchen sees what's inside the bundle,
+  // including any per-component customisations.
+  mealItems: z
+    .array(
+      z.object({
+        name: z.string(),
+        quantity: z.number().int(),
+        selectedModifiers: z.array(selectedModifierSchema).default([]),
+        customizations: z.array(appliedCustomizationSchema).default([]),
+      }),
+    )
+    .default([]),
 });
 export type OrderItem = z.infer<typeof orderItemSchema>;
 

@@ -12,7 +12,7 @@ export type {
   Modifier,
   MenuItemIngredient,
   RecipeComponent,
-  ComboComponent,
+  MealComponent,
   InventoryItem,
   Order,
   OrderItem,
