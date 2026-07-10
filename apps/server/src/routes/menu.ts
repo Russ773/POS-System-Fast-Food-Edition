@@ -118,11 +118,30 @@ menuRouter.patch("/items/:id", requireAuth(["user"]), async (req, res) => {
   });
   if (!existing) return res.status(404).json({ message: "Menu item not found" });
 
-  const item = await prisma.menuItem.update({
-    where: { id: existing.id },
-    data: parsed.data,
-    include: menuItemInclude,
+  const { ingredients, ...fields } = parsed.data;
+
+  const item = await prisma.$transaction(async (tx) => {
+    await tx.menuItem.update({ where: { id: existing.id }, data: fields });
+    // Replace the ingredient set wholesale when provided.
+    if (ingredients) {
+      await tx.menuItemIngredient.deleteMany({ where: { menuItemId: existing.id } });
+      if (ingredients.length > 0) {
+        await tx.menuItemIngredient.createMany({
+          data: ingredients.map((ing, idx) => ({
+            menuItemId: existing.id,
+            name: ing.name,
+            includedByDefault: ing.includedByDefault,
+            removable: ing.removable,
+            addable: ing.addable,
+            extraPriceCents: ing.extraPriceCents,
+            sortOrder: ing.sortOrder || idx + 1,
+          })),
+        });
+      }
+    }
+    return tx.menuItem.findUniqueOrThrow({ where: { id: existing.id }, include: menuItemInclude });
   });
+
   res.json(toMenuItemDTO(item));
 });
 
@@ -131,6 +150,15 @@ menuRouter.delete("/items/:id", requireAuth(["user"]), async (req, res) => {
     where: { id: req.params.id, orgId: req.auth!.orgId },
   });
   if (!existing) return res.status(404).json({ message: "Menu item not found" });
+
+  // Preserve order history: an item that has ever been ordered can't be hard
+  // deleted (it would orphan past order lines). Steer the user to deactivate it.
+  const orderCount = await prisma.orderItem.count({ where: { menuItemId: existing.id } });
+  if (orderCount > 0) {
+    return res.status(409).json({
+      message: "This item has order history. Deactivate it instead of deleting.",
+    });
+  }
 
   await prisma.menuItem.delete({ where: { id: existing.id } });
   res.status(204).send();

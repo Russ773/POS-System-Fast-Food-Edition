@@ -1,5 +1,5 @@
 import { Button } from "@pos/ui";
-import type { CreateIngredientRequest } from "@pos/shared";
+import type { CreateIngredientRequest, MenuItemIngredient } from "@pos/shared";
 import { dollarsToCents } from "../format";
 
 export interface DraftIngredient {
@@ -12,6 +12,18 @@ export interface DraftIngredient {
 
 export function emptyIngredient(): DraftIngredient {
   return { name: "", includedByDefault: true, removable: true, addable: false, extraPrice: "" };
+}
+
+export function ingredientsToDrafts(ingredients: MenuItemIngredient[]): DraftIngredient[] {
+  return [...ingredients]
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .map((ing) => ({
+      name: ing.name,
+      includedByDefault: ing.includedByDefault,
+      removable: ing.removable,
+      addable: ing.addable,
+      extraPrice: ing.extraPriceCents ? (ing.extraPriceCents / 100).toFixed(2) : "",
+    }));
 }
 
 export function draftsToRequests(drafts: DraftIngredient[]): CreateIngredientRequest[] {

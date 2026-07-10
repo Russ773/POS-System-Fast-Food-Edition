@@ -98,6 +98,10 @@ export const updateMenuItemRequestSchema = z.object({
   priceCents: z.number().int().nonnegative().optional(),
   imageUrl: z.string().optional(),
   isActive: z.boolean().optional(),
+  // When present, replaces the item's entire ingredient set. Omit to leave
+  // ingredients untouched. Safe to replace: orders snapshot customizations as
+  // JSON, so historical orders don't reference these rows.
+  ingredients: z.array(createIngredientRequestSchema).optional(),
 });
 export type UpdateMenuItemRequest = z.infer<typeof updateMenuItemRequestSchema>;
 

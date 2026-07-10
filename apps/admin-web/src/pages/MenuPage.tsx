@@ -8,6 +8,7 @@ import {
   IngredientsEditor,
   draftsToRequests,
 } from "../components/IngredientsEditor";
+import { EditItemDialog } from "../components/EditItemDialog";
 
 export function MenuPage() {
   const [categories, setCategories] = useState<MenuCategory[]>([]);
@@ -20,6 +21,7 @@ export function MenuPage() {
   const [itemCategoryId, setItemCategoryId] = useState("");
   const [itemDescription, setItemDescription] = useState("");
   const [itemIngredients, setItemIngredients] = useState<DraftIngredient[]>([]);
+  const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
 
   async function load() {
     const [cats, its] = await Promise.all([api.menu.listCategories(), api.menu.listItems()]);
@@ -71,8 +73,13 @@ export function MenuPage() {
 
   async function deleteItem(id: string) {
     if (!confirm("Delete this menu item?")) return;
-    await api.menu.deleteItem(id);
-    await load();
+    setError(null);
+    try {
+      await api.menu.deleteItem(id);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete item");
+    }
   }
 
   return (
@@ -160,7 +167,10 @@ export function MenuPage() {
                 <td>{centsToDollars(item.priceCents)}</td>
                 <td>{item.modifierGroups.map((g) => g.name).join(", ") || "—"}</td>
                 <td>{item.ingredients.map((i) => i.name).join(", ") || "—"}</td>
-                <td>
+                <td className="row-actions">
+                  <Button variant="ghost" onClick={() => setEditingItem(item)}>
+                    Edit
+                  </Button>
                   <Button variant="ghost" onClick={() => deleteItem(item.id)}>
                     Delete
                   </Button>
@@ -177,6 +187,18 @@ export function MenuPage() {
           </tbody>
         </table>
       </Card>
+
+      {editingItem && (
+        <EditItemDialog
+          item={editingItem}
+          categories={categories}
+          onClose={() => setEditingItem(null)}
+          onSaved={async () => {
+            setEditingItem(null);
+            await load();
+          }}
+        />
+      )}
     </div>
   );
 }
