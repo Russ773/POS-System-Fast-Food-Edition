@@ -1,4 +1,5 @@
 import type { Employee, InventoryItem, Location, MenuCategory, MenuItem, Order, Shift } from "./entities";
+import type { ReportSummary } from "./reports";
 import type {
   CapturePaymentRequest,
   CreateEmployeeRequest,
@@ -127,6 +128,14 @@ export function createApiClient({ baseUrl, getToken }: ApiClientOptions) {
       clockOut: (id: string) =>
         request<Shift>(`/employees/${id}/clock-out`, { method: "POST" }),
       listShifts: (locationId?: string) => request<Shift[]>(withLocation("/shifts", locationId)),
+    },
+    reports: {
+      summary: (params: { locationId: string; from?: string; to?: string }) => {
+        const query = new URLSearchParams({ locationId: params.locationId });
+        if (params.from) query.set("from", params.from);
+        if (params.to) query.set("to", params.to);
+        return request<ReportSummary>(`/reports/summary?${query.toString()}`);
+      },
     },
     orders: {
       list: (params?: { status?: string; locationId?: string }) => {
