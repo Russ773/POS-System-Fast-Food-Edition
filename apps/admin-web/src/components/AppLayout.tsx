@@ -8,6 +8,7 @@ const NAV = [
   { to: "/employees", label: "Employees" },
   { to: "/shifts", label: "Shifts" },
   { to: "/reporting", label: "Reporting" },
+  { to: "/settings", label: "Settings" },
 ];
 
 export function AppLayout() {

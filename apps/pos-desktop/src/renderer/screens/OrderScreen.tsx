@@ -8,7 +8,7 @@ import type {
   PaymentMethod,
   SelectedModifier,
 } from "@pos/shared";
-import { api } from "../posClient";
+import { api, money } from "../posClient";
 import { useMenu } from "./useMenu";
 import {
   CartLine,
@@ -25,10 +25,6 @@ interface Props {
   location: Location;
   employee: Employee;
   onClockOut: () => void;
-}
-
-function money(cents: number): string {
-  return `$${(cents / 100).toFixed(2)}`;
 }
 
 // Sentinel tab id for the dedicated "Meals" section.

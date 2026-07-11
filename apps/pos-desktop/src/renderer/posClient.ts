@@ -1,4 +1,14 @@
-import { createApiClient } from "@pos/shared";
+import { createApiClient, formatMoney } from "@pos/shared";
+
+// Active currency for POS price formatting, set from org settings after pairing.
+let posCurrency = localStorage.getItem("pos_currency") ?? "USD";
+export function setPosCurrency(currency: string) {
+  posCurrency = currency;
+  localStorage.setItem("pos_currency", currency);
+}
+export function money(cents: number): string {
+  return formatMoney(cents, posCurrency);
+}
 
 // The device token lives in the main process; the renderer receives it after
 // pairing and holds it in memory for authenticated API calls (menu, PIN login).

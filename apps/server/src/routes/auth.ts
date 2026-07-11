@@ -21,7 +21,10 @@ authRouter.post("/login", async (req, res) => {
   }
 
   const token = signToken({ type: "user", sub: user.id, orgId: user.orgId, role: user.role });
-  const locations = await prisma.location.findMany({ where: { orgId: user.orgId } });
+  const [locations, org] = await Promise.all([
+    prisma.location.findMany({ where: { orgId: user.orgId } }),
+    prisma.organization.findUnique({ where: { id: user.orgId } }),
+  ]);
   res.json({
     token,
     user: {
@@ -33,6 +36,11 @@ authRouter.post("/login", async (req, res) => {
       createdAt: user.createdAt,
     },
     locations,
+    settings: {
+      orgName: org?.name ?? "",
+      currency: org?.currency ?? "USD",
+      taxRateBps: org?.taxRateBps ?? 0,
+    },
   });
 });
 

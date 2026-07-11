@@ -2,15 +2,12 @@ import { useState } from "react";
 import { Button } from "@pos/ui";
 import type { EnqueueResult } from "../../shared/ipc";
 import type { PaymentMethod } from "@pos/shared";
+import { money } from "../posClient";
 
 interface Props {
   totalCents: number;
   onCancel: () => void;
   onConfirm: (method: PaymentMethod) => Promise<{ result: EnqueueResult; method: PaymentMethod }>;
-}
-
-function money(cents: number): string {
-  return `$${(cents / 100).toFixed(2)}`;
 }
 
 export function CheckoutDialog({ totalCents, onCancel, onConfirm }: Props) {

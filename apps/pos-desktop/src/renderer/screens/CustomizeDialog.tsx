@@ -7,6 +7,7 @@ import type {
   MenuItemIngredient,
   SelectedModifier,
 } from "@pos/shared";
+import { money } from "../posClient";
 
 interface Props {
   item: MenuItem;
@@ -15,8 +16,7 @@ interface Props {
 }
 
 function priceLabel(cents: number): string {
-  const sign = cents > 0 ? "+" : "-";
-  return `${sign}$${Math.abs(cents / 100).toFixed(2)}`;
+  return `${cents > 0 ? "+" : "-"}${money(Math.abs(cents))}`;
 }
 
 export function CustomizeDialog({ item, onCancel, onConfirm }: Props) {
@@ -177,7 +177,7 @@ function IngredientRow({
             className={`pos-ing-btn ${action === "ADD" ? "is-yes" : ""}`}
             onClick={() => onSet("ADD")}
           >
-            Add{extra > 0 ? ` +$${(extra / 100).toFixed(2)}` : ""}
+            Add{extra > 0 ? ` +${money(extra)}` : ""}
           </button>
         )}
         {canExtra && (
@@ -185,7 +185,7 @@ function IngredientRow({
             className={`pos-ing-btn ${action === "EXTRA" ? "is-yes" : ""}`}
             onClick={() => onSet("EXTRA")}
           >
-            Extra{extra > 0 ? ` +$${(extra / 100).toFixed(2)}` : ""}
+            Extra{extra > 0 ? ` +${money(extra)}` : ""}
           </button>
         )}
       </div>

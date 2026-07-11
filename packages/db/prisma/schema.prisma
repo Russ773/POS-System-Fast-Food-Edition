@@ -39,9 +39,11 @@ enum PaymentStatus {
 }
 
 model Organization {
-  id        String   @id @default(uuid())
-  name      String
-  createdAt DateTime @default(now())
+  id         String   @id @default(uuid())
+  name       String
+  currency   String   @default("USD") // ISO 4217 code for money formatting
+  taxRateBps Int      @default(0) // sales tax rate in basis points (875 = 8.75%)
+  createdAt  DateTime @default(now())
 
   locations      Location[]
   users          User[]

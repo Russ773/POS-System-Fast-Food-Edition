@@ -9,6 +9,7 @@ import { inventoryRouter } from "./routes/inventory.js";
 import { employeesRouter, shiftsRouter } from "./routes/employees.js";
 import { ordersRouter } from "./routes/orders.js";
 import { reportsRouter } from "./routes/reports.js";
+import { settingsRouter } from "./routes/settings.js";
 
 export function createApp() {
   const app = express();
@@ -26,6 +27,7 @@ export function createApp() {
   app.use("/shifts", shiftsRouter);
   app.use("/orders", ordersRouter);
   app.use("/reports", reportsRouter);
+  app.use("/settings", settingsRouter);
 
   app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
     console.error(err);

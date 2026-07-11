@@ -20,6 +20,11 @@ export const loginResponseSchema = z.object({
   token: z.string(),
   user: userSchema,
   locations: z.array(locationSchema),
+  settings: z.object({
+    orgName: z.string(),
+    currency: z.string(),
+    taxRateBps: z.number().int(),
+  }),
 });
 export type LoginResponse = z.infer<typeof loginResponseSchema>;
 

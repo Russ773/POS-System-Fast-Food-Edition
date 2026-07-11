@@ -7,6 +7,7 @@ import { InventoryPage } from "./pages/InventoryPage";
 import { EmployeesPage } from "./pages/EmployeesPage";
 import { ShiftsPage } from "./pages/ShiftsPage";
 import { ReportingPage } from "./pages/ReportingPage";
+import { SettingsPage } from "./pages/SettingsPage";
 
 export function App() {
   const { token } = useAuth();
@@ -28,6 +29,7 @@ export function App() {
         <Route path="/employees" element={<EmployeesPage />} />
         <Route path="/shifts" element={<ShiftsPage />} />
         <Route path="/reporting" element={<ReportingPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
         <Route path="*" element={<Navigate to="/menu" replace />} />
       </Route>
     </Routes>

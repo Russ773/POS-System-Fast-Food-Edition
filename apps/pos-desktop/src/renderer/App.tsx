@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Employee, Location } from "@pos/shared";
 import type { ConnStatus } from "../shared/ipc";
-import { setDeviceToken } from "./posClient";
+import { deviceApi, setDeviceToken, setPosCurrency } from "./posClient";
 import { PairingScreen } from "./screens/PairingScreen";
 import { ClockInScreen } from "./screens/ClockInScreen";
 import { OrderScreen } from "./screens/OrderScreen";
@@ -21,6 +21,8 @@ export function App() {
         setDeviceToken(pairing.deviceToken);
         setLocation(pairing.location);
         setPhase("clock-in");
+        // Load org currency so prices format correctly (best-effort/online).
+        deviceApi.settings.get().then((s) => setPosCurrency(s.currency)).catch(() => {});
       } else {
         setPhase("pairing");
       }
@@ -33,6 +35,7 @@ export function App() {
   function onPaired(loc: Location) {
     setLocation(loc);
     setPhase("clock-in");
+    deviceApi.settings.get().then((s) => setPosCurrency(s.currency)).catch(() => {});
   }
 
   function onClockedIn(emp: Employee) {

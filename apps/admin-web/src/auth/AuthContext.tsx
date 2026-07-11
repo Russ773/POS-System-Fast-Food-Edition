@@ -1,13 +1,16 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import type { Location, User } from "@pos/shared";
+import type { Location, OrgSettings, User } from "@pos/shared";
 import { api } from "../api";
+import { setCurrency } from "../format";
 
 interface AuthState {
   user: User | null;
   locations: Location[];
   token: string | null;
   selectedLocationId: string | null;
+  settings: OrgSettings | null;
   setSelectedLocationId: (id: string) => void;
+  applySettings: (settings: OrgSettings) => void;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
 }
@@ -21,11 +24,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [selectedLocationId, setSelectedLocationIdState] = useState<string | null>(() =>
     localStorage.getItem("pos_admin_selected_location"),
   );
+  const [settings, setSettings] = useState<OrgSettings | null>(null);
+
+  function applySettings(next: OrgSettings) {
+    setSettings(next);
+    setCurrency(next.currency);
+    localStorage.setItem("pos_admin_settings", JSON.stringify(next));
+  }
 
   useEffect(() => {
     const storedUser = localStorage.getItem("pos_admin_user");
     const storedLocations = localStorage.getItem("pos_admin_locations");
+    const storedSettings = localStorage.getItem("pos_admin_settings");
     if (storedUser) setUser(JSON.parse(storedUser));
+    if (storedSettings) applySettings(JSON.parse(storedSettings));
     if (storedLocations) {
       const parsed: Location[] = JSON.parse(storedLocations);
       setLocations(parsed);
@@ -49,6 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(res.token);
     setUser(res.user);
     setLocations(res.locations);
+    applySettings(res.settings);
     if (res.locations.length > 0) setSelectedLocationId(res.locations[0].id);
   }
 
@@ -57,15 +70,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("pos_admin_user");
     localStorage.removeItem("pos_admin_locations");
     localStorage.removeItem("pos_admin_selected_location");
+    localStorage.removeItem("pos_admin_settings");
     setToken(null);
     setUser(null);
     setLocations([]);
     setSelectedLocationIdState(null);
+    setSettings(null);
   }
 
   return (
     <AuthContext.Provider
-      value={{ user, locations, token, selectedLocationId, setSelectedLocationId, login, logout }}
+      value={{
+        user,
+        locations,
+        token,
+        selectedLocationId,
+        settings,
+        setSelectedLocationId,
+        applySettings,
+        login,
+        logout,
+      }}
     >
       {children}
     </AuthContext.Provider>

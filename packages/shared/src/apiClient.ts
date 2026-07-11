@@ -1,5 +1,6 @@
 import type { Employee, InventoryItem, Location, MenuCategory, MenuItem, Order, Shift } from "./entities";
 import type { ReportSummary } from "./reports";
+import type { OrgSettings, UpdateOrgSettingsRequest } from "./settings";
 import type {
   CapturePaymentRequest,
   CreateEmployeeRequest,
@@ -128,6 +129,11 @@ export function createApiClient({ baseUrl, getToken }: ApiClientOptions) {
       clockOut: (id: string) =>
         request<Shift>(`/employees/${id}/clock-out`, { method: "POST" }),
       listShifts: (locationId?: string) => request<Shift[]>(withLocation("/shifts", locationId)),
+    },
+    settings: {
+      get: () => request<OrgSettings>("/settings"),
+      update: (body: UpdateOrgSettingsRequest) =>
+        request<OrgSettings>("/settings", { method: "PUT", body: JSON.stringify(body) }),
     },
     reports: {
       summary: (params: { locationId: string; from?: string; to?: string }) => {
